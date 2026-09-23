@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="enhancements.css" />
     <link rel="stylesheet" href="accessibility.css" />
+    <link rel="stylesheet" href="chatbot.css" />
   </head>
   <body>
     <header class="topbar">
@@ -43,14 +44,14 @@
               <label>Тема<select id="draftTopic"><option>Retail</option><option>EdTech</option><option>FinTech</option><option>HealthTech</option><option>GovTech</option></select></label>
               <label>Компания / проект<input id="company" placeholder="Например, Qadam Store" /></label>
             </div>
-            <button id="analyzeButton" class="button primary">Проанализировать черновик <span>✦</span></button>
+            <button id="analyzeButton" class="button primary">Начать диалог с AI <span>✦</span></button>
             <p class="hint">Локальный AI-анализатор: проверяет признаки заполненности и создаёт вопросы по недостающим полям.</p>
           </article>
           <article class="panel ai-panel">
             <div class="panel-title"><span class="spark">✦</span><div><h3>AI-помощник</h3><p>Структурированный анализ без выдуманных фактов</p></div></div>
-            <div id="aiEmpty" class="empty-state">Введите черновик и нажмите «Проанализировать». Здесь появятся минимум три уместных вопроса.</div>
-            <div id="questionsBox" class="hidden"><p class="questions-title">Что уточнить у бизнеса</p><div id="questions"></div><button id="buildCardButton" class="button secondary">Сформировать карточку →</button></div>
-            <details class="ai-contract"><summary>Как работает AI-анализатор</summary><p>Локальный анализатор читает только текст черновика, определяет недостающие поля и возвращает три разных вопроса. Он не добавляет факты в карточку сам.</p><code>Вход: draft<br>Выход: questions[] (ровно 3), missingFields[]</code><p>В MVP нет внешнего LLM API: это воспроизводимый локальный fallback, поэтому сценарий не зависит от ключей и сети.</p></details>
+            <div id="aiEmpty" class="empty-state">Введите черновик и нажмите «Начать диалог». Чат-бот задаст три уместных вопроса и сохранит ваши ответы в карточку.</div>
+            <div id="questionsBox" class="hidden"><div id="chatMessages" class="chat-messages" aria-live="polite"></div><div class="chat-composer"><input id="chatInput" placeholder="Напишите ответ…" /><button id="sendChatButton" class="button primary">Отправить</button></div><button id="buildCardButton" class="button secondary hidden">Сформировать карточку →</button></div>
+            <details class="ai-contract"><summary>Как работает чат-бот</summary><p>Локальный AI-анализатор читает текст черновика, выбирает три разных поля для уточнения и ведёт диалог вопрос за вопросом. Он не добавляет факты в карточку сам.</p><code>Вход: draft + ответы пользователя<br>Выход: 3 questions[] + заполненные поля карточки</code><p>В MVP нет внешнего LLM API: диалог воспроизводим и не зависит от ключей или сети.</p></details>
           </article>
         </div>
       </section>

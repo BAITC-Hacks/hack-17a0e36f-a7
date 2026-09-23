@@ -23,6 +23,8 @@ let tasks = loadStored('sanamatch_tasks', seedTasks);
 let responses = loadStored('sanamatch_responses', seedResponses);
 let currentTask = null;
 let selectedTaskId = null;
+let chatQuestions = [];
+let chatIndex = 0;
 const $ = id => document.getElementById(id);
 const fields = ['title','context','users','data','constraints','result','success','contact','format'];
 
@@ -31,6 +33,9 @@ function readyLevel(score){ return score < 40 ? ['Черновик','draft'] : s
 function has(text){ return Boolean(String(text || '').trim()); }
 function getScore(card){ const items = { context: has(card.context), data: has(card.data), result: has(card.result), success: has(card.success), constraints: has(card.constraints), users: has(card.users), contactFormat: has(card.contact) && has(card.format) }; return Object.entries(items).reduce((sum,[key,full]) => sum + (full ? weights[key] : 0), 0); }
 function showToast(text){ $('toast').textContent=text; $('toast').classList.remove('hidden'); setTimeout(()=>$('toast').classList.add('hidden'),3200); }
+function addChatMessage(role,text){ const message=document.createElement('div'); message.className='chat-message '+role; message.textContent=text; $('chatMessages').appendChild(message); $('chatMessages').scrollTop=$('chatMessages').scrollHeight; }
+function askNextQuestion(){ if(chatIndex>=chatQuestions.length){ addChatMessage('bot','Спасибо! Я сохранил ответы в черновик карточки. Проверьте и дополните детали перед публикацией.'); $('chatInput').disabled=true; $('sendChatButton').disabled=true; $('buildCardButton').classList.remove('hidden'); return; } addChatMessage('bot',chatQuestions[chatIndex][1]); }
+function sendChatMessage(){ const answer=$('chatInput').value.trim(); if(!answer){showToast('Введите короткий ответ для чат-бота.');return;} const [field]=chatQuestions[chatIndex]; currentTask[field]=answer; addChatMessage('user',answer); $('chatInput').value=''; chatIndex+=1; askNextQuestion(); }
 
 function analyzeDraft(){
   const draft = $('draftText').value.trim();
@@ -43,9 +48,11 @@ function analyzeDraft(){
   const missingFields = map.filter(([key])=>!detected[key]);
   const confirmations = map.filter(([key])=>detected[key]).map(([key])=>[key,`Уточните, пожалуйста, детали поля «${labels[key] || key}», чтобы команде было понятно, с чем работать.`]);
   const questions = [...missingFields,...confirmations].slice(0,3);
-  $('questions').innerHTML=questions.map((q,i)=>`<div class="question"><b>${i+1}</b>${q[1]}</div>`).join('');
+  chatQuestions=questions; chatIndex=0; $('chatMessages').innerHTML=''; $('chatInput').value=''; $('chatInput').disabled=false; $('sendChatButton').disabled=false; $('buildCardButton').classList.add('hidden');
   $('aiEmpty').classList.add('hidden'); $('questionsBox').classList.remove('hidden');
   currentTask = { id: 't'+Date.now(), title:'', topic:$('draftTopic').value, context:draft, users:'', data:'', constraints:'', result:'', success:'', contact:'', format:'', company:$('company').value, analysis:{ missingFields:missingFields.map(([key])=>key), questions:questions.map(([,question])=>question) }, published:false };
+  addChatMessage('bot','Я прочитал черновик. Задам три коротких вопроса, чтобы подготовить карточку задачи.');
+  askNextQuestion();
 }
 function loadDemo(){
   $('draftText').value='Интернет-магазин получает много однотипных обращений, и операторы вручную распределяют их между отделами. Хотим сократить время обработки.';
@@ -61,7 +68,7 @@ function resetDemo(){
   tasks=seedTasks.map(task=>({...task}));
   responses=seedResponses.map(response=>({...response}));
   currentTask=null; selectedTaskId=null;
-  $('draftText').value=''; $('company').value=''; $('questionsBox').classList.add('hidden'); $('aiEmpty').classList.remove('hidden');
+  $('draftText').value=''; $('company').value=''; $('questionsBox').classList.add('hidden'); $('aiEmpty').classList.remove('hidden'); $('chatMessages').innerHTML=''; chatQuestions=[]; chatIndex=0;
   $('cardSection').classList.add('hidden'); $('proposalSection').classList.add('hidden'); $('topicFilter').value='all'; $('readinessFilter').value='all';
   renderCatalog(); showToast('Демо-данные восстановлены.');
 }
@@ -82,5 +89,5 @@ function setResponse(id,status){const r=responses.find(x=>x.id===id);if(!r)retur
 function escapeHtml(value){const d=document.createElement('div');d.textContent=value||'';return d.innerHTML;}
 
 window.openProposal=openProposal; window.setResponse=setResponse;
-$('analyzeButton').addEventListener('click',analyzeDraft); $('buildCardButton').addEventListener('click',populateCard); $('publishButton').addEventListener('click',publish); $('sendProposal').addEventListener('click',sendProposal); $('loadDemoButton').addEventListener('click',loadDemo); $('resetDemoButton').addEventListener('click',resetDemo); fields.forEach(key=>$(key).addEventListener('input',updateCard)); $('topicFilter').addEventListener('change',renderCatalog); $('readinessFilter').addEventListener('change',renderCatalog);
+$('analyzeButton').addEventListener('click',analyzeDraft); $('sendChatButton').addEventListener('click',sendChatMessage); $('chatInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();sendChatMessage();}}); $('buildCardButton').addEventListener('click',populateCard); $('publishButton').addEventListener('click',publish); $('sendProposal').addEventListener('click',sendProposal); $('loadDemoButton').addEventListener('click',loadDemo); $('resetDemoButton').addEventListener('click',resetDemo); fields.forEach(key=>$(key).addEventListener('input',updateCard)); $('topicFilter').addEventListener('change',renderCatalog); $('readinessFilter').addEventListener('change',renderCatalog);
 $('teamSelect').innerHTML=teams.map(t=>`<option value="${t.id}">${t.name} — ${t.skills}</option>`).join(''); renderCatalog();
