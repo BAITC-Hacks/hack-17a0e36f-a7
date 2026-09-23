@@ -18,8 +18,9 @@ const seedResponses = [
   { id: 'r4', taskId: 's4', teamId: 1, idea: 'Безопасная форма-навигатор по типу запроса.', plan: 'MVP за 7 дней.', link: 'https://github.com/codenomads/clinic', status: 'pending' },
   { id: 'r5', taskId: 's5', teamId: 2, idea: 'Календарь платежей с ранними предупреждениями.', plan: 'Аналитический прототип за 2 недели.', link: 'https://github.com/dataminds/cashflow', status: 'pending' }
 ];
-let tasks = JSON.parse(localStorage.getItem('sanamatch_tasks') || 'null') || seedTasks;
-let responses = JSON.parse(localStorage.getItem('sanamatch_responses') || 'null') || seedResponses;
+function loadStored(key, fallback){ try { const value=JSON.parse(localStorage.getItem(key)||'null'); return Array.isArray(value)?value:fallback; } catch { return fallback; } }
+let tasks = loadStored('sanamatch_tasks', seedTasks);
+let responses = loadStored('sanamatch_responses', seedResponses);
 let currentTask = null;
 let selectedTaskId = null;
 const $ = id => document.getElementById(id);
@@ -38,11 +39,13 @@ function analyzeDraft(){
   const map = [
     ['data','Какие данные, примеры или материалы доступны команде?'], ['result','Какой конкретный результат вы хотите получить от команды?'], ['success','По каким измеримым признакам вы поймёте, что задача решена?'], ['constraints','Какие сроки, технологии, доступы или ограничения нужно учесть?'], ['users','Кто будет пользоваться результатом и какую проблему это решит?'], ['contact','Кто будет контактным лицом со стороны бизнеса?'], ['format','Какой формат консультаций и обратной связи возможен?']
   ];
-  const detected = { data: /данн|csv|таблиц|пример/.test(lower), result: /результат|прототип|сервис|систем/.test(lower), success: /%|метрик|сократ|увелич/.test(lower), constraints: /срок|недел|огранич|только/.test(lower), users: /клиент|студент|оператор|пользоват/.test(lower) };
-  const questions = map.filter(([key])=>!detected[key]).slice(0,4); while(questions.length<3) questions.push(map[questions.length]);
+  const detected = { data: /данн|csv|таблиц|пример/.test(lower), result: /результат|прототип|сервис|систем/.test(lower), success: /%|метрик|сократ|увелич/.test(lower), constraints: /срок|недел|огранич|только/.test(lower), users: /клиент|студент|оператор|пользоват/.test(lower), contact: /контакт|@|телефон|звон|пишите/.test(lower), format: /консультац|обратн.{0,12}связ|еженедел|созвон|встреч/.test(lower) };
+  const missingFields = map.filter(([key])=>!detected[key]);
+  const confirmations = map.filter(([key])=>detected[key]).map(([key])=>[key,`Уточните, пожалуйста, детали поля «${labels[key] || key}», чтобы команде было понятно, с чем работать.`]);
+  const questions = [...missingFields,...confirmations].slice(0,3);
   $('questions').innerHTML=questions.map((q,i)=>`<div class="question"><b>${i+1}</b>${q[1]}</div>`).join('');
   $('aiEmpty').classList.add('hidden'); $('questionsBox').classList.remove('hidden');
-  currentTask = { id: 't'+Date.now(), title:'', topic:$('draftTopic').value, context:draft, users:'', data:'', constraints:'', result:'', success:'', contact:'', format:'', company:$('company').value, published:false };
+  currentTask = { id: 't'+Date.now(), title:'', topic:$('draftTopic').value, context:draft, users:'', data:'', constraints:'', result:'', success:'', contact:'', format:'', company:$('company').value, analysis:{ missingFields:missingFields.map(([key])=>key), questions:questions.map(([,question])=>question) }, published:false };
 }
 function loadDemo(){
   $('draftText').value='Интернет-магазин получает много однотипных обращений, и операторы вручную распределяют их между отделами. Хотим сократить время обработки.';
@@ -59,7 +62,7 @@ function resetDemo(){
   responses=seedResponses.map(response=>({...response}));
   currentTask=null; selectedTaskId=null;
   $('draftText').value=''; $('company').value=''; $('questionsBox').classList.add('hidden'); $('aiEmpty').classList.remove('hidden');
-  $('cardSection').classList.add('hidden'); $('proposalSection').classList.add('hidden');
+  $('cardSection').classList.add('hidden'); $('proposalSection').classList.add('hidden'); $('topicFilter').value='all'; $('readinessFilter').value='all';
   renderCatalog(); showToast('Демо-данные восстановлены.');
 }
 function populateCard(){ if(!currentTask) return; $('cardSection').classList.remove('hidden'); fields.forEach(key=>$(key).value=currentTask[key]||''); if(!$('title').value) $('title').value = `${$('company').value || 'Новая'}: бизнес-задача`; updateCard(); $('cardSection').scrollIntoView({behavior:'smooth'}); }
@@ -72,10 +75,10 @@ function updateCard(){ const card=collectCard(); if(!card)return; const score=ge
 function publish(){ const card=collectCard(); if(!card)return; const required=['title','context','result']; if(required.some(k=>!has(card[k]))){showToast('Для публикации заполните название, контекст и ожидаемый результат.');return;} card.published=true; card.score=getScore(card); const index=tasks.findIndex(t=>t.id===card.id); if(index>=0)tasks[index]=card;else tasks.push(card); save(); renderCatalog(); showToast(`Задача опубликована. Рейтинг: ${card.score}/100.`); $('catalog').scrollIntoView({behavior:'smooth'}); }
 function renderCatalog(){ const topic=$('topicFilter').value, filter=$('readinessFilter').value; const filtered=tasks.map(t=>({...t,score:getScore(t)})).filter(t=>t.published).filter(t=>topic==='all'||t.topic===topic).filter(t=>filter==='all'||(filter==='working'?t.score>=40:t.score>=70)).sort((a,b)=>b.score-a.score); $('catalogGrid').innerHTML=filtered.map(t=>{const [level,cls]=readyLevel(t.score);return `<article class="task-tile"><div class="tile-meta"><span class="topic">${t.topic}</span><span class="score-pill">${t.score}/100</span></div><h3>${escapeHtml(t.title)}</h3><p>${escapeHtml(t.context)}</p><p class="selected-state">${level}</p><button class="button secondary" onclick="openProposal('${t.id}')">Откликнуться →</button></article>`}).join('') || '<p>Нет задач с такими фильтрами.</p>'; renderResponses(); }
 function openProposal(id){ selectedTaskId=id; const task=tasks.find(t=>t.id===id); $('proposalSection').classList.remove('hidden'); $('proposalFor').textContent=`Отклик на задачу: ${task.title}`; $('proposalSection').scrollIntoView({behavior:'smooth'}); }
-function sendProposal(){ const idea=$('proposalIdea').value.trim(),plan=$('proposalPlan').value.trim();if(!selectedTaskId){showToast('Сначала выберите задачу в каталоге.');return}if(!idea||!plan){showToast('Опишите идею решения и план.');return} responses.unshift({id:'r'+Date.now(),taskId:selectedTaskId,teamId:Number($('teamSelect').value),idea,plan,link:$('prototypeLink').value.trim(),status:'pending'});save();$('proposalIdea').value='';$('proposalPlan').value='';showToast('Предложение отправлено бизнесу.');renderResponses();$('responses').scrollIntoView({behavior:'smooth'}); }
+function sendProposal(){ const idea=$('proposalIdea').value.trim(),plan=$('proposalPlan').value.trim(),link=$('prototypeLink').value.trim(),teamId=Number($('teamSelect').value);if(!selectedTaskId){showToast('Сначала выберите задачу в каталоге.');return}if(!idea||!plan){showToast('Опишите идею решения и план.');return}if(!/^https?:\/\/\S+$/i.test(link)){showToast('Добавьте корректную ссылку на прототип, начинающуюся с https://.');return}if(responses.some(r=>r.taskId===selectedTaskId&&r.teamId===teamId)){showToast('Эта команда уже отправила предложение по выбранной задаче.');return} responses.unshift({id:'r'+Date.now(),taskId:selectedTaskId,teamId,idea,plan,link,status:'pending'});save();$('proposalIdea').value='';$('proposalPlan').value='';showToast('Предложение отправлено бизнесу.');renderResponses();$('responses').scrollIntoView({behavior:'smooth'}); }
 function renderResponses(){ $('responsesList').innerHTML=responses.map(r=>{const task=tasks.find(t=>t.id===r.taskId)||{};const team=teams.find(t=>t.id===r.teamId)||{};let action=r.status==='pending'?`<button class="small-btn pick" onclick="setResponse('${r.id}','selected')">Выбрать</button><button class="small-btn reject" onclick="setResponse('${r.id}','rejected')">Отклонить</button>`:`<span class="selected-state">${r.status==='selected'?'✓ Команда выбрана · +100 progress points':'Отклонено'}</span>`;return `<article class="response"><div><span class="topic">${escapeHtml(task.title||'Удалённая задача')}</span><h3>${escapeHtml(team.name||'Команда')}</h3><p><b>Идея:</b> ${escapeHtml(r.idea)}</p><p><b>План:</b> ${escapeHtml(r.plan)}</p><p><b>Прототип:</b> ${escapeHtml(r.link)}</p></div><div class="response-actions">${action}</div></article>`}).join(''); renderLeaderboard(); }
 function renderLeaderboard(){ const points=teams.map(team=>({ ...team, points:responses.filter(r=>r.teamId===team.id&&r.status==='selected').length*100 })).sort((a,b)=>b.points-a.points||a.name.localeCompare(b.name)); $('leaderboardList').innerHTML=points.map((team,index)=>`<div class="leaderboard-row"><span>${index+1}</span><strong>${escapeHtml(team.name)}</strong><b>${team.points} pts</b></div>`).join(''); }
-function setResponse(id,status){const r=responses.find(x=>x.id===id);if(!r)return;r.status=status;save();renderResponses();showToast(status==='selected'?'Команда выбрана вручную. Ей начислены баллы прогресса.':'Отклик отклонён.');}
+function setResponse(id,status){const r=responses.find(x=>x.id===id);if(!r)return;if(status==='selected'&&responses.some(x=>x.taskId===r.taskId&&x.status==='selected'&&x.id!==id)){showToast('Для этой задачи уже выбрана команда.');return}r.status=status;save();renderResponses();showToast(status==='selected'?'Команда выбрана вручную. Ей начислены 100 баллов прогресса.':'Отклик отклонён.');}
 function escapeHtml(value){const d=document.createElement('div');d.textContent=value||'';return d.innerHTML;}
 
 window.openProposal=openProposal; window.setResponse=setResponse;

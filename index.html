@@ -43,13 +43,13 @@
               <label>Компания / проект<input id="company" placeholder="Например, Qadam Store" /></label>
             </div>
             <button id="analyzeButton" class="button primary">Проанализировать черновик <span>✦</span></button>
-            <p class="hint">Локальный AI fallback: анализирует заполненность и создаёт вопросы по отсутствующим полям.</p>
+            <p class="hint">Локальный AI-анализатор: проверяет признаки заполненности и создаёт вопросы по недостающим полям.</p>
           </article>
           <article class="panel ai-panel">
             <div class="panel-title"><span class="spark">✦</span><div><h3>AI-помощник</h3><p>Структурированный анализ без выдуманных фактов</p></div></div>
             <div id="aiEmpty" class="empty-state">Введите черновик и нажмите «Проанализировать». Здесь появятся минимум три уместных вопроса.</div>
             <div id="questionsBox" class="hidden"><p class="questions-title">Что уточнить у бизнеса</p><div id="questions"></div><button id="buildCardButton" class="button secondary">Сформировать карточку →</button></div>
-            <details class="ai-contract"><summary>Как работает AI и fallback</summary><p>Помощник анализирует только текст пользователя, находит незаполненные поля и возвращает вопросы. Он не добавляет факты в карточку сам.</p><code>Вход: draft, topic, company<br>Выход: questions[] (минимум 3), missingFields[]</code><p>Если ответ AI недоступен или некорректен, используется локальный шаблон вопросов — сценарий демо не прерывается.</p></details>
+            <details class="ai-contract"><summary>Как работает AI-анализатор</summary><p>Локальный анализатор читает только текст черновика, определяет недостающие поля и возвращает три разных вопроса. Он не добавляет факты в карточку сам.</p><code>Вход: draft<br>Выход: questions[] (ровно 3), missingFields[]</code><p>В MVP нет внешнего LLM API: это воспроизводимый локальный fallback, поэтому сценарий не зависит от ключей и сети.</p></details>
           </article>
         </div>
       </section>
