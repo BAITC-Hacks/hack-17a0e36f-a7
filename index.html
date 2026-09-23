@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="enhancements.css" />
   </head>
   <body>
     <header class="topbar">
@@ -22,7 +23,7 @@
           <p class="eyebrow">AI Sana Challenge Hub</p>
           <h1>Превращаем короткую бизнес-идею в задачу, к которой хочется присоединиться.</h1>
           <p class="lead">SanaMatch задаёт уточняющие вопросы, прозрачно оценивает готовность задачи и помогает бизнесу вручную выбрать студенческую команду.</p>
-          <a class="button primary" href="#builder">Создать задачу <span>→</span></a>
+          <div class="hero-actions"><a class="button primary" href="#builder">Создать задачу <span>→</span></a><button id="loadDemoButton" class="button ghost">Загрузить демо-кейс</button></div>
         </div>
         <div class="hero-score">
           <p>Геймификация для бизнеса</p>
@@ -48,6 +49,7 @@
             <div class="panel-title"><span class="spark">✦</span><div><h3>AI-помощник</h3><p>Структурированный анализ без выдуманных фактов</p></div></div>
             <div id="aiEmpty" class="empty-state">Введите черновик и нажмите «Проанализировать». Здесь появятся минимум три уместных вопроса.</div>
             <div id="questionsBox" class="hidden"><p class="questions-title">Что уточнить у бизнеса</p><div id="questions"></div><button id="buildCardButton" class="button secondary">Сформировать карточку →</button></div>
+            <details class="ai-contract"><summary>Как работает AI и fallback</summary><p>Помощник анализирует только текст пользователя, находит незаполненные поля и возвращает вопросы. Он не добавляет факты в карточку сам.</p><code>Вход: draft, topic, company<br>Выход: questions[] (минимум 3), missingFields[]</code><p>Если ответ AI недоступен или некорректен, используется локальный шаблон вопросов — сценарий демо не прерывается.</p></details>
           </article>
         </div>
       </section>
@@ -99,7 +101,7 @@
       </section>
     </main>
     <div id="toast" class="toast hidden"></div>
-    <footer>SanaMatch · MVP для AI Sana Challenge Hub · Все данные демонстрационные</footer>
+    <footer>SanaMatch · MVP для AI Sana Challenge Hub · Все данные демонстрационные · <button id="resetDemoButton" class="text-button">Сбросить демо-данные</button></footer>
     <script src="app.js"></script>
   </body>
 </html>

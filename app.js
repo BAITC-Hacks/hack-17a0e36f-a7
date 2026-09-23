@@ -44,6 +44,24 @@ function analyzeDraft(){
   $('aiEmpty').classList.add('hidden'); $('questionsBox').classList.remove('hidden');
   currentTask = { id: 't'+Date.now(), title:'', topic:$('draftTopic').value, context:draft, users:'', data:'', constraints:'', result:'', success:'', contact:'', format:'', company:$('company').value, published:false };
 }
+function loadDemo(){
+  $('draftText').value='Интернет-магазин получает много однотипных обращений, и операторы вручную распределяют их между отделами. Хотим сократить время обработки.';
+  $('draftTopic').value='Retail';
+  $('company').value='Qadam Store';
+  $('builder').scrollIntoView({behavior:'smooth'});
+  analyzeDraft();
+  showToast('Загружен короткий черновик для обязательного демо-сценария.');
+}
+function resetDemo(){
+  localStorage.removeItem('sanamatch_tasks');
+  localStorage.removeItem('sanamatch_responses');
+  tasks=seedTasks.map(task=>({...task}));
+  responses=seedResponses.map(response=>({...response}));
+  currentTask=null; selectedTaskId=null;
+  $('draftText').value=''; $('company').value=''; $('questionsBox').classList.add('hidden'); $('aiEmpty').classList.remove('hidden');
+  $('cardSection').classList.add('hidden'); $('proposalSection').classList.add('hidden');
+  renderCatalog(); showToast('Демо-данные восстановлены.');
+}
 function populateCard(){ if(!currentTask) return; $('cardSection').classList.remove('hidden'); fields.forEach(key=>$(key).value=currentTask[key]||''); if(!$('title').value) $('title').value = `${$('company').value || 'Новая'}: бизнес-задача`; updateCard(); $('cardSection').scrollIntoView({behavior:'smooth'}); }
 function collectCard(){ if(!currentTask) return null; fields.forEach(key=>currentTask[key]=$(key).value.trim()); return currentTask; }
 function updateCard(){ const card=collectCard(); if(!card)return; const score=getScore(card); const [level,cls]=readyLevel(score); $('score').textContent=score; $('progressBar').style.width=score+'%'; $('readiness').textContent=level; $('draftBadge').textContent=level; $('draftBadge').className='badge '+cls;
@@ -60,5 +78,5 @@ function setResponse(id,status){const r=responses.find(x=>x.id===id);if(!r)retur
 function escapeHtml(value){const d=document.createElement('div');d.textContent=value||'';return d.innerHTML;}
 
 window.openProposal=openProposal; window.setResponse=setResponse;
-$('analyzeButton').addEventListener('click',analyzeDraft); $('buildCardButton').addEventListener('click',populateCard); $('publishButton').addEventListener('click',publish); $('sendProposal').addEventListener('click',sendProposal); fields.forEach(key=>$(key).addEventListener('input',updateCard)); $('topicFilter').addEventListener('change',renderCatalog); $('readinessFilter').addEventListener('change',renderCatalog);
+$('analyzeButton').addEventListener('click',analyzeDraft); $('buildCardButton').addEventListener('click',populateCard); $('publishButton').addEventListener('click',publish); $('sendProposal').addEventListener('click',sendProposal); $('loadDemoButton').addEventListener('click',loadDemo); $('resetDemoButton').addEventListener('click',resetDemo); fields.forEach(key=>$(key).addEventListener('input',updateCard)); $('topicFilter').addEventListener('change',renderCatalog); $('readinessFilter').addEventListener('change',renderCatalog);
 $('teamSelect').innerHTML=teams.map(t=>`<option value="${t.id}">${t.name} — ${t.skills}</option>`).join(''); renderCatalog();

@@ -1,0 +1,8 @@
+.hero-actions{display:flex;gap:10px;flex-wrap:wrap}
+.ghost{color:#0b8c4c;background:#fff;border:1px solid #b7d8bd}
+.ai-contract{margin-top:18px;border-top:1px solid #dce7de;padding-top:15px;color:#607067;font-size:12px;line-height:1.55}
+.ai-contract summary{color:#0b8c4c;font-weight:800;cursor:pointer}
+.ai-contract p{margin:10px 0}
+.ai-contract code{display:block;background:#f3faf5;color:#355242;border-radius:8px;padding:9px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.text-button{border:0;background:none;color:#0b8c4c;font:inherit;font-weight:800;cursor:pointer;padding:0}
+@media(max-width:540px){.hero-actions .button{width:100%}}
