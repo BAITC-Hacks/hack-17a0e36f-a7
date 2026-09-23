@@ -1,9 +1,9 @@
 .hero-actions{display:flex;gap:10px;flex-wrap:wrap}
-.ghost{color:#0b8c4c;background:#fff;border:1px solid #b7d8bd}
+.ghost{color:var(--green);background:#fff;border:1px solid #b7d8bd}
 .ai-contract{margin-top:18px;border-top:1px solid #dce7de;padding-top:15px;color:#607067;font-size:12px;line-height:1.55}
-.ai-contract summary{color:#0b8c4c;font-weight:800;cursor:pointer}
+.ai-contract summary{color:var(--green);font-weight:800;cursor:pointer}
 .ai-contract p{margin:10px 0}
 .ai-contract code{display:block;background:#f3faf5;color:#355242;border-radius:8px;padding:9px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-.text-button{border:0;background:none;color:#0b8c4c;font:inherit;font-weight:800;cursor:pointer;padding:0}
+.text-button{border:0;background:none;color:var(--green);font:inherit;font-weight:800;cursor:pointer;padding:0}
 @media(max-width:540px){.hero-actions .button{width:100%}}
-.leaderboard{margin-top:22px;border:1px solid #b9e2c3;background:linear-gradient(135deg,#f3faf5,#e8f7e7);border-radius:18px;padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center}.leaderboard h3{margin:0 0 7px;font-size:20px}.leaderboard p:not(.eyebrow){margin:0;color:#607067;font-size:13px;line-height:1.55}.leaderboard-list{display:grid;gap:8px}.leaderboard-row{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;background:#fff;border:1px solid #dce7de;border-radius:9px;padding:9px 10px;font-size:13px}.leaderboard-row span{color:#0b8c4c;font-weight:800}.leaderboard-row b{color:#0b8c4c}@media(max-width:540px){.leaderboard{grid-template-columns:1fr}}
+.leaderboard{margin-top:22px;border:1px solid #b9e2c3;background:linear-gradient(135deg,#f3faf5,#e8f7e7);border-radius:18px;padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center}.leaderboard h3{margin:0 0 7px;font-size:20px}.leaderboard p:not(.eyebrow){margin:0;color:#607067;font-size:13px;line-height:1.55}.leaderboard-list{display:grid;gap:8px}.leaderboard-row{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;background:#fff;border:1px solid #dce7de;border-radius:9px;padding:9px 10px;font-size:13px}.leaderboard-row span{color:var(--green);font-weight:800}.leaderboard-row b{color:var(--green)}@media(max-width:540px){.leaderboard{grid-template-columns:1fr}}

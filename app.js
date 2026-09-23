@@ -1,5 +1,19 @@
 const weights = { context: 20, data: 20, result: 15, success: 15, constraints: 10, users: 10, contactFormat: 10 };
 const labels = { context: 'Контекст и потребность', data: 'Данные и материалы', result: 'Ожидаемый результат', success: 'Критерии успеха', constraints: 'Ограничения', users: 'Пользователи', contactFormat: 'Связь с бизнесом' };
+const AI_FIELD_RULES = [
+  { field: 'data', label: 'Данные и материалы', detect: /данн\w*|\bcsv\b|таблиц\w*|пример\w*|материал\w*|выгрузк\w*|источник\w*/i, denied: /(?:нет|не\s+доступн\w*)\s+(?:(?:пока|у\s+нас)\s+)?(?:никаких?\s+)?(?:данн\w*|пример\w*|материал\w*)|(?:данн\w*|пример\w*)\s+(?:пока\s+)?нет/i, question: 'Какие данные, примеры или материалы доступны команде?', confirmation: 'Вы упомянули данные или материалы. Что именно будет доступно команде?', context: [{ pattern: /обращен\w*/i, question: 'Есть ли примеры таких обращений или другие материалы, доступные команде?' }] },
+  { field: 'result', label: 'Ожидаемый результат', detect: /результат\w*|прототип\w*|сервис\w*|систем\w*|продукт\w*/i, denied: /(?:результат|продукт)\w*.{0,30}(?:не\s+определ|не\s+понят)|(?:не\s+знаем|не\s+определили).{0,30}(?:результат|что\s+нужно)/i, question: 'Какой конкретный результат вы хотите получить?', confirmation: 'Вы упомянули ожидаемый результат. Что именно должна получить команда в итоге?', context: [{ pattern: /сократ\w*.{0,24}врем\w*|врем\w*.{0,24}обработк\w*|ускор\w*/i, question: 'На сколько нужно сократить время обработки и за какой период?' }] },
+  { field: 'success', label: 'Критерии успеха', detect: /%|метрик\w*|критери\w*|сократ\w*|увелич\w*|сниз\w*|измерим\w*|успех\w*/i, denied: /(?:метрик\w*|критери\w*|успех\w*).{0,25}(?:нет|не\s+определ)|(?:не\s+знаем|не\s+определили).{0,25}(?:успех|метрик|критери)/i, question: 'По каким измеримым признакам вы поймёте, что задача решена?', confirmation: 'Вы упомянули критерий или целевое изменение. Какое значение будет считаться успехом?', context: [{ pattern: /сократ\w*|увелич\w*|сниз\w*|ускор\w*/i, question: 'По какой метрике и какому целевому значению вы оцените это изменение?' }] },
+  { field: 'constraints', label: 'Ограничения', detect: /срок\w*|недел\w*|огранич\w*|технолог\w*|доступ\w*|бюджет\w*|только\s+/i, denied: /(?:срок\w*|огранич\w*|технолог\w*).{0,25}(?:не\s+определ|пока\s+нет)|(?:нет|не\s+знаем).{0,25}(?:ограничен|срок)/i, question: 'Какие сроки, технологии, доступы или другие ограничения нужно учесть?', confirmation: 'Вы упомянули ограничения или сроки. Какие именно условия должна учитывать команда?', context: [{ pattern: /персональн\w*|пациент\w*|клиентск\w*|данн\w*/i, question: 'Какие ограничения по использованию данных или технологий нужно учесть?' }] },
+  { field: 'users', label: 'Пользователи', detect: /клиент\w*|студент\w*|оператор\w*|пользоват\w*|пациент\w*|сотрудник\w*|администратор\w*|покупател\w*/i, denied: /(?:пользоват|клиент|студент|пациент)\w*.{0,25}(?:не\s+определ|пока\s+не\s+знаем)|(?:не\s+знаем|не\s+определили).{0,25}(?:пользоват|клиент|аудитор)/i, question: 'Кто будет пользоваться результатом и какую проблему это решит?', confirmation: 'Вы упомянули пользователей. Кто именно будет работать с результатом?', context: [{ pattern: /обращен\w*/i, question: 'Кто обрабатывает эти обращения и будет пользоваться результатом?' }, { pattern: /студент\w*/i, question: 'Для каких студентов предназначен результат?' }] },
+  { field: 'contact', label: 'Контакт со стороны бизнеса', detect: /контакт\w*|@|телефон\w*|связаться|кому\s+писать|пишите/i, denied: /(?:нет|не\s+указан\w*)\s+(?:контакт\w*|телефон\w*|почт\w*)/i, question: 'Кто будет контактным лицом со стороны бизнеса?', confirmation: 'Вы упомянули контакт со стороны бизнеса. Как к этому человеку обращаться?', context: [] },
+  { field: 'format', label: 'Формат взаимодействия', detect: /консультац\w*|обратн.{0,12}связ|еженедел\w*|созвон\w*|встреч\w*|формат.{0,20}(?:общен|связ)/i, denied: /(?:формат|обратн\w*\s+связ).{0,25}(?:не\s+определ|пока\s+нет)|(?:нет|не\s+знаем).{0,25}(?:формат|частот)/i, question: 'Какой формат консультаций и обратной связи возможен?', confirmation: 'Вы упомянули взаимодействие. Как часто и в каком формате команда сможет задавать вопросы?', context: [] }
+];
+const AI_SAFE_QUESTIONS = [
+  { field: 'data', text: 'Какие данные, примеры или материалы доступны команде?' },
+  { field: 'result', text: 'Какой конкретный результат вы хотите получить?' },
+  { field: 'success', text: 'По каким признакам вы поймёте, что задача решена?' }
+];
 const teams = [
   { id: 1, name: 'Code Nomads', skills: 'React, UX, AI-агенты' }, { id: 2, name: 'DataMinds', skills: 'Python, аналитика, ML' },
   { id: 3, name: 'Pixel Pioneers', skills: 'Product design, frontend' }, { id: 4, name: 'Qadam Tech', skills: 'Backend, интеграции' }, { id: 5, name: 'Future Five', skills: 'EdTech, GenAI' }
@@ -33,25 +47,61 @@ function readyLevel(score){ return score < 40 ? ['Черновик','draft'] : s
 function has(text){ return Boolean(String(text || '').trim()); }
 function getScore(card){ const items = { context: has(card.context), data: has(card.data), result: has(card.result), success: has(card.success), constraints: has(card.constraints), users: has(card.users), contactFormat: has(card.contact) && has(card.format) }; return Object.entries(items).reduce((sum,[key,full]) => sum + (full ? weights[key] : 0), 0); }
 function showToast(text){ $('toast').textContent=text; $('toast').classList.remove('hidden'); setTimeout(()=>$('toast').classList.add('hidden'),3200); }
-function addChatMessage(role,text){ const message=document.createElement('div'); message.className='chat-message '+role; message.textContent=text; $('chatMessages').appendChild(message); $('chatMessages').scrollTop=$('chatMessages').scrollHeight; }
-function askNextQuestion(){ if(chatIndex>=chatQuestions.length){ addChatMessage('bot','Спасибо! Я сохранил ответы в черновик карточки. Проверьте и дополните детали перед публикацией.'); $('chatInput').disabled=true; $('sendChatButton').disabled=true; $('buildCardButton').classList.remove('hidden'); return; } addChatMessage('bot',chatQuestions[chatIndex][1]); }
-function sendChatMessage(){ const answer=$('chatInput').value.trim(); if(!answer){showToast('Введите короткий ответ для чат-бота.');return;} const [field]=chatQuestions[chatIndex]; currentTask[field]=answer; addChatMessage('user',answer); $('chatInput').value=''; chatIndex+=1; askNextQuestion(); }
-
-function analyzeDraft(){
-  const draft = $('draftText').value.trim();
-  if(!draft){ showToast('Сначала добавьте короткое описание задачи.'); return; }
+function addChatMessage(role,text){ const message=document.createElement('div'); message.className='chat-message '+role; message.textContent=String(text); $('chatMessages').appendChild(message); $('chatMessages').scrollTop=$('chatMessages').scrollHeight; }
+function unicodeTest(pattern,text){ const flags=pattern.flags.includes('u')?pattern.flags:pattern.flags+'u'; return new RegExp(pattern.source.replace(/\\w/g,'[\\p{L}\\p{N}_]'),flags).test(text); }
+function fieldIsMentioned(lower,rule){ return unicodeTest(rule.detect,lower) && !(rule.denied && unicodeTest(rule.denied,lower)); }
+function questionForField(rule,draft,mentioned){
+  if(mentioned) return rule.confirmation;
   const lower=draft.toLowerCase();
-  const map = [
-    ['data','Какие данные, примеры или материалы доступны команде?'], ['result','Какой конкретный результат вы хотите получить от команды?'], ['success','По каким измеримым признакам вы поймёте, что задача решена?'], ['constraints','Какие сроки, технологии, доступы или ограничения нужно учесть?'], ['users','Кто будет пользоваться результатом и какую проблему это решит?'], ['contact','Кто будет контактным лицом со стороны бизнеса?'], ['format','Какой формат консультаций и обратной связи возможен?']
-  ];
-  const detected = { data: /данн|csv|таблиц|пример/.test(lower), result: /результат|прототип|сервис|систем/.test(lower), success: /%|метрик|сократ|увелич/.test(lower), constraints: /срок|недел|огранич|только/.test(lower), users: /клиент|студент|оператор|пользоват/.test(lower), contact: /контакт|@|телефон|звон|пишите/.test(lower), format: /консультац|обратн.{0,12}связ|еженедел|созвон|встреч/.test(lower) };
-  const missingFields = map.filter(([key])=>!detected[key]);
-  const confirmations = map.filter(([key])=>detected[key]).map(([key])=>[key,`Уточните, пожалуйста, детали поля «${labels[key] || key}», чтобы команде было понятно, с чем работать.`]);
-  const questions = [...missingFields,...confirmations].slice(0,3);
-  chatQuestions=questions; chatIndex=0; $('chatMessages').innerHTML=''; $('chatInput').value=''; $('chatInput').disabled=false; $('sendChatButton').disabled=false; $('buildCardButton').classList.add('hidden');
+  const contextual=(rule.context||[]).find(item=>unicodeTest(item.pattern,lower));
+  return contextual ? contextual.question : rule.question;
+}
+function safeFallbackResult(){
+  return { status:'fallback', mode:'safe_fallback', error_code:'local_analysis_error', missing_fields:[], mentioned_fields:[], questions:AI_SAFE_QUESTIONS.map(item=>({...item})) };
+}
+function analyzeAgent(input){
+  if(!input || typeof input!=='object' || Array.isArray(input) || typeof input.draft!=='string') return {status:'invalid_input',mode:'local_rules',error_code:'draft_must_be_text',missing_fields:[],mentioned_fields:[],questions:[]};
+  const draft=input.draft.trim();
+  if(!draft) return {status:'invalid_input',mode:'local_rules',error_code:'draft_required',missing_fields:[],mentioned_fields:[],questions:[]};
+  try {
+    const lower=draft.toLowerCase();
+    const mentioned=AI_FIELD_RULES.filter(rule=>fieldIsMentioned(lower,rule));
+    const missing=AI_FIELD_RULES.filter(rule=>!mentioned.includes(rule));
+    const selected=[...missing,...mentioned].slice(0,3);
+    if(selected.length!==3) return safeFallbackResult();
+    return {status:'ok',mode:'local_rules',missing_fields:missing.map(rule=>rule.field),mentioned_fields:mentioned.map(rule=>rule.field),questions:selected.map(rule=>({field:rule.field,text:questionForField(rule,draft,mentioned.includes(rule))}))};
+  } catch {
+    return safeFallbackResult();
+  }
+}
+function applyAgentAnswer(task,field,rawAnswer){
+  if(!task || !AI_FIELD_RULES.some(rule=>rule.field===field) || typeof rawAnswer!=='string' || !rawAnswer.trim()) return {status:'invalid_input',error_code:'answer_and_known_field_required'};
+  const value=rawAnswer.trim(); task[field]=value;
+  return {status:'ok',card_update:{field,value}};
+}
+window.SanaMatchAI=Object.freeze({analyze:analyzeAgent,applyAnswer:applyAgentAnswer});
+function askNextQuestion(){
+  if(chatIndex>=chatQuestions.length){ addChatMessage('bot','Спасибо! Ответы сохранены в соответствующие поля черновика. Проверьте карточку и отредактируйте любые детали перед публикацией.'); $('chatInput').disabled=true; $('sendChatButton').disabled=true; $('buildCardButton').classList.remove('hidden'); return; }
+  addChatMessage('bot',chatQuestions[chatIndex].text);
+}
+function sendChatMessage(){
+  const answer=$('chatInput').value.trim();
+  if(!answer){showToast('Введите ответ для чат-бота.');return;}
+  const question=chatQuestions[chatIndex];
+  const result=window.SanaMatchAI.applyAnswer(currentTask,question&&question.field,answer);
+  if(result.status!=='ok'){showToast('Не удалось сохранить ответ. Перезапустите диалог и попробуйте снова.');return;}
+  addChatMessage('user',result.card_update.value); $('chatInput').value=''; chatIndex+=1; askNextQuestion();
+}
+function analyzeDraft(){
+  const draft=$('draftText').value.trim();
+  if(!draft){showToast('Сначала добавьте короткое описание задачи.');return;}
+  const analysis=window.SanaMatchAI.analyze({draft});
+  if(analysis.status==='invalid_input'){showToast('Не удалось прочитать черновик. Проверьте текст и попробуйте снова.');return;}
+  chatQuestions=analysis.questions; chatIndex=0; $('chatMessages').innerHTML=''; $('chatInput').value=''; $('chatInput').disabled=false; $('sendChatButton').disabled=false; $('buildCardButton').classList.add('hidden');
   $('aiEmpty').classList.add('hidden'); $('questionsBox').classList.remove('hidden');
-  currentTask = { id: 't'+Date.now(), title:'', topic:$('draftTopic').value, context:draft, users:'', data:'', constraints:'', result:'', success:'', contact:'', format:'', company:$('company').value, analysis:{ missingFields:missingFields.map(([key])=>key), questions:questions.map(([,question])=>question) }, published:false };
-  addChatMessage('bot','Я прочитал черновик. Задам три коротких вопроса, чтобы подготовить карточку задачи.');
+  currentTask={id:'t'+Date.now(),title:'',topic:$('draftTopic').value,context:draft,users:'',data:'',constraints:'',result:'',success:'',contact:'',format:'',company:$('company').value,analysis:{mode:analysis.mode,status:analysis.status,missing_fields:analysis.missing_fields,mentioned_fields:analysis.mentioned_fields,questions:analysis.questions},published:false};
+  if(analysis.status==='fallback') addChatMessage('bot','Локальный анализ не сработал. Я использую безопасные общие вопросы и не буду заполнять поля догадками.');
+  else addChatMessage('bot','Я проверил черновик по локальным правилам заполненности. Сначала уточню поля, о которых пока нет явного упоминания.');
   askNextQuestion();
 }
 function loadDemo(){
@@ -68,7 +118,9 @@ function resetDemo(){
   tasks=seedTasks.map(task=>({...task}));
   responses=seedResponses.map(response=>({...response}));
   currentTask=null; selectedTaskId=null;
-  $('draftText').value=''; $('company').value=''; $('questionsBox').classList.add('hidden'); $('aiEmpty').classList.remove('hidden'); $('chatMessages').innerHTML=''; chatQuestions=[]; chatIndex=0;
+  $('draftText').value=''; $('draftTopic').value='Retail'; $('company').value=''; $('questionsBox').classList.add('hidden'); $('aiEmpty').classList.remove('hidden'); $('chatMessages').innerHTML=''; chatQuestions=[]; chatIndex=0;
+  $('chatInput').value=''; $('chatInput').disabled=false; $('sendChatButton').disabled=false; $('buildCardButton').classList.add('hidden');
+  $('proposalIdea').value=''; $('proposalPlan').value=''; $('prototypeLink').value='https://github.com/team/solution'; $('teamSelect').selectedIndex=0;
   $('cardSection').classList.add('hidden'); $('proposalSection').classList.add('hidden'); $('topicFilter').value='all'; $('readinessFilter').value='all';
   renderCatalog(); showToast('Демо-данные восстановлены.');
 }
@@ -79,7 +131,7 @@ function updateCard(){ const card=collectCard(); if(!card)return; const score=ge
   $('scoreBreakdown').innerHTML=Object.keys(weights).map(key=>`<div class="breakdown-row"><span>${labels[key]}</span><strong>${items[key]?weights[key]:0}/${weights[key]}</strong></div>`).join('');
   const missing=Object.keys(items).filter(key=>!items[key]); $('missingList').innerHTML=missing.length?missing.map(key=>`<li>Добавьте: ${labels[key].toLowerCase()}</li>`).join(''):'<li>Карточка полностью готова к работе.</li>';
 }
-function publish(){ const card=collectCard(); if(!card)return; const required=['title','context','result']; if(required.some(k=>!has(card[k]))){showToast('Для публикации заполните название, контекст и ожидаемый результат.');return;} card.published=true; card.score=getScore(card); const index=tasks.findIndex(t=>t.id===card.id); if(index>=0)tasks[index]=card;else tasks.push(card); save(); renderCatalog(); showToast(`Задача опубликована. Рейтинг: ${card.score}/100.`); $('catalog').scrollIntoView({behavior:'smooth'}); }
+function publish(){ const card=collectCard(); if(!card)return; const required=['title','context','result']; if(required.some(k=>!has(card[k]))){showToast('Для публикации заполните название, контекст и ожидаемый результат.');return;} const publishedCard={...card,published:true,score:getScore(card)}; const index=tasks.findIndex(t=>t.id===card.id); if(index>=0)tasks[index]=publishedCard;else tasks.push(publishedCard); save(); renderCatalog(); showToast(`Задача опубликована. Рейтинг: ${publishedCard.score}/100.`); $('catalog').scrollIntoView({behavior:'smooth'}); }
 function renderCatalog(){ const topic=$('topicFilter').value, filter=$('readinessFilter').value; const filtered=tasks.map(t=>({...t,score:getScore(t)})).filter(t=>t.published).filter(t=>topic==='all'||t.topic===topic).filter(t=>filter==='all'||(filter==='working'?t.score>=40:t.score>=70)).sort((a,b)=>b.score-a.score); $('catalogGrid').innerHTML=filtered.map(t=>{const [level,cls]=readyLevel(t.score);return `<article class="task-tile"><div class="tile-meta"><span class="topic">${t.topic}</span><span class="score-pill">${t.score}/100</span></div><h3>${escapeHtml(t.title)}</h3><p>${escapeHtml(t.context)}</p><p class="selected-state">${level}</p><button class="button secondary" onclick="openProposal('${t.id}')">Откликнуться →</button></article>`}).join('') || '<p>Нет задач с такими фильтрами.</p>'; renderResponses(); }
 function openProposal(id){ selectedTaskId=id; const task=tasks.find(t=>t.id===id); $('proposalSection').classList.remove('hidden'); $('proposalFor').textContent=`Отклик на задачу: ${task.title}`; $('proposalSection').scrollIntoView({behavior:'smooth'}); }
 function sendProposal(){ const idea=$('proposalIdea').value.trim(),plan=$('proposalPlan').value.trim(),link=$('prototypeLink').value.trim(),teamId=Number($('teamSelect').value);if(!selectedTaskId){showToast('Сначала выберите задачу в каталоге.');return}if(!idea||!plan){showToast('Опишите идею решения и план.');return}if(!/^https?:\/\/\S+$/i.test(link)){showToast('Добавьте корректную ссылку на прототип, начинающуюся с https://.');return}if(responses.some(r=>r.taskId===selectedTaskId&&r.teamId===teamId)){showToast('Эта команда уже отправила предложение по выбранной задаче.');return} responses.unshift({id:'r'+Date.now(),taskId:selectedTaskId,teamId,idea,plan,link,status:'pending'});save();$('proposalIdea').value='';$('proposalPlan').value='';showToast('Предложение отправлено бизнесу.');renderResponses();$('responses').scrollIntoView({behavior:'smooth'}); }
