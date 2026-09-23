@@ -3,7 +3,7 @@ const labels = { context: 'Контекст и потребность', data: '�
 const AI_FIELD_RULES = [
   { field: 'data', label: 'Данные и материалы', detect: /данн\w*|\bcsv\b|таблиц\w*|пример\w*|материал\w*|выгрузк\w*|источник\w*/i, denied: /(?:нет|не\s+доступн\w*)\s+(?:(?:пока|у\s+нас)\s+)?(?:никаких?\s+)?(?:данн\w*|пример\w*|материал\w*)|(?:данн\w*|пример\w*)\s+(?:пока\s+)?нет/i, question: 'Какие данные, примеры или материалы доступны команде?', confirmation: 'Вы упомянули данные или материалы. Что именно будет доступно команде?', context: [{ pattern: /обращен\w*/i, question: 'Есть ли примеры таких обращений или другие материалы, доступные команде?' }] },
   { field: 'result', label: 'Ожидаемый результат', detect: /результат\w*|прототип\w*|сервис\w*|систем\w*|продукт\w*/i, denied: /(?:результат|продукт)\w*.{0,30}(?:не\s+определ|не\s+понят)|(?:не\s+знаем|не\s+определили).{0,30}(?:результат|что\s+нужно)/i, question: 'Какой конкретный результат вы хотите получить?', confirmation: 'Вы упомянули ожидаемый результат. Что именно должна получить команда в итоге?', context: [{ pattern: /сократ\w*.{0,24}врем\w*|врем\w*.{0,24}обработк\w*|ускор\w*/i, question: 'На сколько нужно сократить время обработки и за какой период?' }] },
-  { field: 'success', label: 'Критерии успеха', detect: /%|метрик\w*|критери\w*|сократ\w*|увелич\w*|сниз\w*|измерим\w*|успех\w*/i, denied: /(?:метрик\w*|критери\w*|успех\w*).{0,25}(?:нет|не\s+определ)|(?:не\s+знаем|не\s+определили).{0,25}(?:успех|метрик|критери)/i, question: 'По каким измеримым признакам вы поймёте, что задача решена?', confirmation: 'Вы упомянули критерий или целевое изменение. Какое значение будет считаться успехом?', context: [{ pattern: /сократ\w*|увелич\w*|сниз\w*|ускор\w*/i, question: 'По какой метрике и какому целевому значению вы оцените это изменение?' }] },
+  { field: 'success', label: 'Критерии успеха', detect: /%|метрик\w*|критери\w*|измерим\w*|успех\w*/i, denied: /(?:метрик\w*|критери\w*|успех\w*).{0,25}(?:нет|не\s+определ)|(?:не\s+знаем|не\s+определили).{0,25}(?:успех|метрик|критери)/i, question: 'По каким измеримым признакам вы поймёте, что задача решена?', confirmation: 'Вы упомянули критерий или целевое изменение. Какое значение будет считаться успехом?', context: [{ pattern: /сократ\w*|увелич\w*|сниз\w*|ускор\w*/i, question: 'По какой метрике и какому целевому значению вы оцените это изменение?' }] },
   { field: 'constraints', label: 'Ограничения', detect: /срок\w*|недел\w*|огранич\w*|технолог\w*|доступ\w*|бюджет\w*|только\s+/i, denied: /(?:срок\w*|огранич\w*|технолог\w*).{0,25}(?:не\s+определ|пока\s+нет)|(?:нет|не\s+знаем).{0,25}(?:ограничен|срок)/i, question: 'Какие сроки, технологии, доступы или другие ограничения нужно учесть?', confirmation: 'Вы упомянули ограничения или сроки. Какие именно условия должна учитывать команда?', context: [{ pattern: /персональн\w*|пациент\w*|клиентск\w*|данн\w*/i, question: 'Какие ограничения по использованию данных или технологий нужно учесть?' }] },
   { field: 'users', label: 'Пользователи', detect: /клиент\w*|студент\w*|оператор\w*|пользоват\w*|пациент\w*|сотрудник\w*|администратор\w*|покупател\w*/i, denied: /(?:пользоват|клиент|студент|пациент)\w*.{0,25}(?:не\s+определ|пока\s+не\s+знаем)|(?:не\s+знаем|не\s+определили).{0,25}(?:пользоват|клиент|аудитор)/i, question: 'Кто будет пользоваться результатом и какую проблему это решит?', confirmation: 'Вы упомянули пользователей. Кто именно будет работать с результатом?', context: [{ pattern: /обращен\w*/i, question: 'Кто обрабатывает эти обращения и будет пользоваться результатом?' }, { pattern: /студент\w*/i, question: 'Для каких студентов предназначен результат?' }] },
   { field: 'contact', label: 'Контакт со стороны бизнеса', detect: /контакт\w*|@|телефон\w*|связаться|кому\s+писать|пишите/i, denied: /(?:нет|не\s+указан\w*)\s+(?:контакт\w*|телефон\w*|почт\w*)/i, question: 'Кто будет контактным лицом со стороны бизнеса?', confirmation: 'Вы упомянули контакт со стороны бизнеса. Как к этому человеку обращаться?', context: [] },
@@ -32,9 +32,12 @@ const seedResponses = [
   { id: 'r4', taskId: 's4', teamId: 1, idea: 'Безопасная форма-навигатор по типу запроса.', plan: 'MVP за 7 дней.', link: 'https://github.com/codenomads/clinic', status: 'pending' },
   { id: 'r5', taskId: 's5', teamId: 2, idea: 'Календарь платежей с ранними предупреждениями.', plan: 'Аналитический прототип за 2 недели.', link: 'https://github.com/dataminds/cashflow', status: 'pending' }
 ];
-function loadStored(key, fallback){ try { const value=JSON.parse(localStorage.getItem(key)||'null'); return Array.isArray(value)?value:fallback; } catch { return fallback; } }
-let tasks = loadStored('sanamatch_tasks', seedTasks);
-let responses = loadStored('sanamatch_responses', seedResponses);
+function isSafeId(value){ return typeof value==='string'&&/^[a-z0-9_-]{1,64}$/i.test(value); }
+function isStoredTask(value){ return Boolean(value&&typeof value==='object'&&!Array.isArray(value)&&isSafeId(value.id)&&typeof value.title==='string'&&typeof value.topic==='string'&&typeof value.published==='boolean'&&['context','data','result','success','constraints','users','contact','format'].every(key=>typeof value[key]==='string')); }
+function isStoredResponse(value){ return Boolean(value&&typeof value==='object'&&!Array.isArray(value)&&isSafeId(value.id)&&isSafeId(value.taskId)&&teams.some(team=>team.id===value.teamId)&&typeof value.idea==='string'&&typeof value.plan==='string'&&typeof value.link==='string'&&['pending','selected','rejected'].includes(value.status)); }
+function loadStored(key,fallback,validate){ try { const value=JSON.parse(localStorage.getItem(key)||'null'); return Array.isArray(value)&&value.every(validate)?value:fallback; } catch { return fallback; } }
+let tasks = loadStored('sanamatch_tasks', seedTasks, isStoredTask).map(task=>({...task}));
+let responses = loadStored('sanamatch_responses', seedResponses, isStoredResponse).map(response=>({...response}));
 let currentTask = null;
 let selectedTaskId = null;
 let chatQuestions = [];
@@ -42,7 +45,31 @@ let chatIndex = 0;
 const $ = id => document.getElementById(id);
 const fields = ['title','context','users','data','constraints','result','success','contact','format'];
 
-function save(){ localStorage.setItem('sanamatch_tasks', JSON.stringify(tasks)); localStorage.setItem('sanamatch_responses', JSON.stringify(responses)); }
+function restoreStoredValue(key,value){ try { if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value); } catch {} }
+function save(){
+  let previousTasks,previousResponses;
+  try {
+    previousTasks=localStorage.getItem('sanamatch_tasks'); previousResponses=localStorage.getItem('sanamatch_responses');
+    localStorage.setItem('sanamatch_tasks',JSON.stringify(tasks)); localStorage.setItem('sanamatch_responses',JSON.stringify(responses));
+    return true;
+  } catch {
+    if(previousTasks!==undefined&&previousResponses!==undefined){restoreStoredValue('sanamatch_tasks',previousTasks);restoreStoredValue('sanamatch_responses',previousResponses);}
+    showToast('Браузер не сохранил изменения. Проверьте доступ к хранилищу и попробуйте снова.');
+    return false;
+  }
+}
+function clearStoredState(){
+  let previousTasks,previousResponses;
+  try {
+    previousTasks=localStorage.getItem('sanamatch_tasks'); previousResponses=localStorage.getItem('sanamatch_responses');
+    localStorage.removeItem('sanamatch_tasks'); localStorage.removeItem('sanamatch_responses');
+    return true;
+  } catch {
+    if(previousTasks!==undefined&&previousResponses!==undefined){restoreStoredValue('sanamatch_tasks',previousTasks);restoreStoredValue('sanamatch_responses',previousResponses);}
+    showToast('Не удалось очистить сохранённые демо-данные. Попробуйте ещё раз.');
+    return false;
+  }
+}
 function readyLevel(score){ return score < 40 ? ['Черновик','draft'] : score < 70 ? ['Рабочая','working'] : score < 90 ? ['Готовая','ready'] : ['Приоритетная','priority']; }
 function has(text){ return Boolean(String(text || '').trim()); }
 function getScore(card){ const items = { context: has(card.context), data: has(card.data), result: has(card.result), success: has(card.success), constraints: has(card.constraints), users: has(card.users), contactFormat: has(card.contact) && has(card.format) }; return Object.entries(items).reduce((sum,[key,full]) => sum + (full ? weights[key] : 0), 0); }
@@ -113,8 +140,7 @@ function loadDemo(){
   showToast('Загружен короткий черновик для обязательного демо-сценария.');
 }
 function resetDemo(){
-  localStorage.removeItem('sanamatch_tasks');
-  localStorage.removeItem('sanamatch_responses');
+  if(!clearStoredState())return;
   tasks=seedTasks.map(task=>({...task}));
   responses=seedResponses.map(response=>({...response}));
   currentTask=null; selectedTaskId=null;
@@ -131,13 +157,13 @@ function updateCard(){ const card=collectCard(); if(!card)return; const score=ge
   $('scoreBreakdown').innerHTML=Object.keys(weights).map(key=>`<div class="breakdown-row"><span>${labels[key]}</span><strong>${items[key]?weights[key]:0}/${weights[key]}</strong></div>`).join('');
   const missing=Object.keys(items).filter(key=>!items[key]); $('missingList').innerHTML=missing.length?missing.map(key=>`<li>Добавьте: ${labels[key].toLowerCase()}</li>`).join(''):'<li>Карточка полностью готова к работе.</li>';
 }
-function publish(){ const card=collectCard(); if(!card)return; const required=['title','context','result']; if(required.some(k=>!has(card[k]))){showToast('Для публикации заполните название, контекст и ожидаемый результат.');return;} const publishedCard={...card,published:true,score:getScore(card)}; const index=tasks.findIndex(t=>t.id===card.id); if(index>=0)tasks[index]=publishedCard;else tasks.push(publishedCard); save(); renderCatalog(); showToast(`Задача опубликована. Рейтинг: ${publishedCard.score}/100.`); $('catalog').scrollIntoView({behavior:'smooth'}); }
-function renderCatalog(){ const topic=$('topicFilter').value, filter=$('readinessFilter').value; const filtered=tasks.map(t=>({...t,score:getScore(t)})).filter(t=>t.published).filter(t=>topic==='all'||t.topic===topic).filter(t=>filter==='all'||(filter==='working'?t.score>=40:t.score>=70)).sort((a,b)=>b.score-a.score); $('catalogGrid').innerHTML=filtered.map(t=>{const [level,cls]=readyLevel(t.score);return `<article class="task-tile"><div class="tile-meta"><span class="topic">${t.topic}</span><span class="score-pill">${t.score}/100</span></div><h3>${escapeHtml(t.title)}</h3><p>${escapeHtml(t.context)}</p><p class="selected-state">${level}</p><button class="button secondary" onclick="openProposal('${t.id}')">Откликнуться →</button></article>`}).join('') || '<p>Нет задач с такими фильтрами.</p>'; renderResponses(); }
+function publish(){ const card=collectCard(); if(!card)return; const required=['title','context','result']; if(required.some(k=>!has(card[k]))){showToast('Для публикации заполните название, контекст и ожидаемый результат.');return;} const publishedCard={...card,published:true,score:getScore(card)},previousTasks=tasks; tasks=tasks.slice(); const index=tasks.findIndex(t=>t.id===card.id); if(index>=0)tasks[index]=publishedCard;else tasks.push(publishedCard); if(!save()){tasks=previousTasks;return;} renderCatalog(); showToast(`Задача опубликована. Рейтинг: ${publishedCard.score}/100.`); $('catalog').scrollIntoView({behavior:'smooth'}); }
+function renderCatalog(){ const topic=$('topicFilter').value, filter=$('readinessFilter').value; const filtered=tasks.map(t=>({...t,score:getScore(t)})).filter(t=>t.published).filter(t=>topic==='all'||t.topic===topic).filter(t=>filter==='all'||(filter==='working'?t.score>=40:t.score>=70)).sort((a,b)=>b.score-a.score); $('catalogGrid').innerHTML=filtered.map(t=>{const [level,cls]=readyLevel(t.score);return `<article class="task-tile"><div class="tile-meta"><span class="topic">${escapeHtml(t.topic)}</span><span class="score-pill">${t.score}/100</span></div><h3>${escapeHtml(t.title)}</h3><p>${escapeHtml(t.context)}</p><p class="selected-state">${level}</p><button class="button secondary" onclick="openProposal('${t.id}')">Откликнуться →</button></article>`}).join('') || '<p>Нет задач с такими фильтрами.</p>'; renderResponses(); }
 function openProposal(id){ selectedTaskId=id; const task=tasks.find(t=>t.id===id); $('proposalSection').classList.remove('hidden'); $('proposalFor').textContent=`Отклик на задачу: ${task.title}`; $('proposalSection').scrollIntoView({behavior:'smooth'}); }
-function sendProposal(){ const idea=$('proposalIdea').value.trim(),plan=$('proposalPlan').value.trim(),link=$('prototypeLink').value.trim(),teamId=Number($('teamSelect').value);if(!selectedTaskId){showToast('Сначала выберите задачу в каталоге.');return}if(!idea||!plan){showToast('Опишите идею решения и план.');return}if(!/^https?:\/\/\S+$/i.test(link)){showToast('Добавьте корректную ссылку на прототип, начинающуюся с https://.');return}if(responses.some(r=>r.taskId===selectedTaskId&&r.teamId===teamId)){showToast('Эта команда уже отправила предложение по выбранной задаче.');return} responses.unshift({id:'r'+Date.now(),taskId:selectedTaskId,teamId,idea,plan,link,status:'pending'});save();$('proposalIdea').value='';$('proposalPlan').value='';showToast('Предложение отправлено бизнесу.');renderResponses();$('responses').scrollIntoView({behavior:'smooth'}); }
+function sendProposal(){ const idea=$('proposalIdea').value.trim(),plan=$('proposalPlan').value.trim(),link=$('prototypeLink').value.trim(),teamId=Number($('teamSelect').value);if(!selectedTaskId){showToast('Сначала выберите задачу в каталоге.');return}if(!idea||!plan){showToast('Опишите идею решения и план.');return}if(!/^https?:\/\/\S+$/i.test(link)){showToast('Добавьте корректную ссылку на прототип, начинающуюся с https://.');return}if(responses.some(r=>r.taskId===selectedTaskId&&r.teamId===teamId)){showToast('Эта команда уже отправила предложение по выбранной задаче.');return} const previousResponses=responses; responses=[{id:'r'+Date.now(),taskId:selectedTaskId,teamId,idea,plan,link,status:'pending'},...responses]; if(!save()){responses=previousResponses;return;} $('proposalIdea').value='';$('proposalPlan').value='';showToast('Предложение отправлено бизнесу.');renderResponses();$('responses').scrollIntoView({behavior:'smooth'}); }
 function renderResponses(){ $('responsesList').innerHTML=responses.map(r=>{const task=tasks.find(t=>t.id===r.taskId)||{};const team=teams.find(t=>t.id===r.teamId)||{};let action=r.status==='pending'?`<button class="small-btn pick" onclick="setResponse('${r.id}','selected')">Выбрать</button><button class="small-btn reject" onclick="setResponse('${r.id}','rejected')">Отклонить</button>`:`<span class="selected-state">${r.status==='selected'?'✓ Команда выбрана · +100 progress points':'Отклонено'}</span>`;return `<article class="response"><div><span class="topic">${escapeHtml(task.title||'Удалённая задача')}</span><h3>${escapeHtml(team.name||'Команда')}</h3><p><b>Идея:</b> ${escapeHtml(r.idea)}</p><p><b>План:</b> ${escapeHtml(r.plan)}</p><p><b>Прототип:</b> ${escapeHtml(r.link)}</p></div><div class="response-actions">${action}</div></article>`}).join(''); renderLeaderboard(); }
 function renderLeaderboard(){ const points=teams.map(team=>({ ...team, points:responses.filter(r=>r.teamId===team.id&&r.status==='selected').length*100 })).sort((a,b)=>b.points-a.points||a.name.localeCompare(b.name)); $('leaderboardList').innerHTML=points.map((team,index)=>`<div class="leaderboard-row"><span>${index+1}</span><strong>${escapeHtml(team.name)}</strong><b>${team.points} pts</b></div>`).join(''); }
-function setResponse(id,status){const r=responses.find(x=>x.id===id);if(!r)return;if(status==='selected'&&responses.some(x=>x.taskId===r.taskId&&x.status==='selected'&&x.id!==id)){showToast('Для этой задачи уже выбрана команда.');return}r.status=status;save();renderResponses();showToast(status==='selected'?'Команда выбрана вручную. Ей начислены 100 баллов прогресса.':'Отклик отклонён.');}
+function setResponse(id,status){const r=responses.find(x=>x.id===id);if(!r||r.status!=='pending'||!['selected','rejected'].includes(status))return;if(status==='selected'&&responses.some(x=>x.taskId===r.taskId&&x.status==='selected'&&x.id!==id)){showToast('Для этой задачи уже выбрана команда.');return}const previousResponses=responses;responses=responses.map(x=>x.id===id?{...x,status}:x);if(!save()){responses=previousResponses;return;}renderResponses();showToast(status==='selected'?'Команда выбрана вручную. Ей начислены 100 баллов прогресса.':'Отклик отклонён.');}
 function escapeHtml(value){const d=document.createElement('div');d.textContent=value||'';return d.innerHTML;}
 
 window.openProposal=openProposal; window.setResponse=setResponse;

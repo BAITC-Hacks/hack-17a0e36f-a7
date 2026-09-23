@@ -7,3 +7,36 @@
 .text-button{border:0;background:none;color:var(--green);font:inherit;font-weight:800;cursor:pointer;padding:0}
 @media(max-width:540px){.hero-actions .button{width:100%}}
 .leaderboard{margin-top:22px;border:1px solid #b9e2c3;background:linear-gradient(135deg,#f3faf5,#e8f7e7);border-radius:18px;padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center}.leaderboard h3{margin:0 0 7px;font-size:20px}.leaderboard p:not(.eyebrow){margin:0;color:#607067;font-size:13px;line-height:1.55}.leaderboard-list{display:grid;gap:8px}.leaderboard-row{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;background:#fff;border:1px solid #dce7de;border-radius:9px;padding:9px 10px;font-size:13px}.leaderboard-row span{color:var(--green);font-weight:800}.leaderboard-row b{color:var(--green)}@media(max-width:540px){.leaderboard{grid-template-columns:1fr}}
+
+/* Larger type and cards on desktop, with a measured bump on phones. */
+@media (min-width: 821px) {
+  main { max-width: 1280px; }
+  .topbar { padding: 0 max(24px, calc((100vw - 1280px) / 2)); }
+}
+
+@media (min-width: 1024px) {
+  .hero { gap: 76px; padding-top: 90px; padding-bottom: 84px; }
+  .hero h1 { font-size: clamp(48px, 4.9vw, 68px); }
+  .lead { font-size: 19px; }
+  .hero-score { min-height: 280px; padding: 36px; }
+  .section { padding-top: 88px; padding-bottom: 88px; }
+  .section-heading h2 { font-size: 42px; }
+  .section-heading > p:not(.eyebrow) { font-size: 17px; }
+  .panel { padding: 30px; }
+  .task-tile { min-height: 280px; padding: 24px; }
+  .task-tile h3 { font-size: 21px; }
+  .task-tile p { font-size: 14px; }
+  .button { padding: 14px 20px; font-size: 15px; }
+  label { font-size: 14px; }
+  input, textarea, select { font-size: 15px; }
+  .response { padding: 24px; }
+  .response h3 { font-size: 18px; }
+  .response p { font-size: 14px; }
+}
+
+@media (max-width: 540px) {
+  .hero h1 { font-size: 40px; }
+  .section-heading h2 { font-size: 32px; }
+  .button { min-height: 48px; font-size: 15px; }
+  input, textarea, select { font-size: 16px; }
+}
