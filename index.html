@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="enhancements.css" />
+    <link rel="stylesheet" href="accessibility.css" />
   </head>
   <body>
     <header class="topbar">
@@ -58,7 +59,7 @@
         <div class="section-heading"><p class="eyebrow">02 / Карточка и рейтинг</p><h2>Подтвердите детали</h2><p>Баллы начисляются только за заполненные поля. Рейтинг пересчитывается сразу.</p></div>
         <div class="card-layout">
           <article class="panel task-card-editor">
-            <div class="panel-title"><div><h3>Редактируемая карточка</h3><p>Проверьте информацию перед публикацией</p></div><span id="draftBadge" class="badge draft">Черновик</span></div>
+            <div class="panel-title"><div><h3>Редактируемая карточка</h3><p>Проверьте информацию перед публикацией</p></div><div class="card-status"><span id="compactScore">0/100</span><span id="draftBadge" class="badge draft">Черновик</span></div></div>
             <div class="form-grid">
               <label>Название задачи<input id="title" placeholder="Короткое название" /></label>
               <label>Пользователи<input id="users" placeholder="Кто получит пользу" /></label>
@@ -101,6 +102,7 @@
         <aside class="leaderboard"><div><p class="eyebrow">Геймификация команд</p><h3>Progress points</h3><p>Команда получает 100 баллов только после ручного выбора бизнесом.</p></div><div id="leaderboardList" class="leaderboard-list"></div></aside>
       </section>
     </main>
+    <nav class="mobile-nav" aria-label="Мобильная навигация"><a href="#builder">Создать</a><a href="#catalog">Каталог</a><a href="#responses">Отклики</a></nav>
     <div id="toast" class="toast hidden"></div>
     <footer>SanaMatch · MVP для AI Sana Challenge Hub · Все данные демонстрационные · <button id="resetDemoButton" class="text-button">Сбросить демо-данные</button></footer>
     <script src="app.js"></script>

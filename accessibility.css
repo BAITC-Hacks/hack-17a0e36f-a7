@@ -1,0 +1,13 @@
+:root{--green:#087a43}
+.section{scroll-margin-top:88px}
+.ghost,.ai-contract summary,.text-button{color:#087a43}
+.card-status{display:flex;align-items:center;gap:8px}
+.card-status #compactScore{display:none;color:#087a43;font-size:12px;font-weight:800}
+.mobile-nav{display:none}
+.small-btn{min-height:44px;font-size:13px}
+@media(max-width:540px){
+  .card-status #compactScore{display:inline-block}
+  .mobile-nav{position:fixed;bottom:0;left:0;right:0;z-index:30;display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #dce7de;background:#fff;box-shadow:0 -4px 18px #13241b12}
+  .mobile-nav a{padding:13px 6px;text-align:center;color:#087a43;font-size:12px;font-weight:800}
+  body{padding-bottom:52px}
+}
