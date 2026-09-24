@@ -1,10 +1,10 @@
 (() => {
   const teams = [
-    { id: 1, name: 'CodeNomads', skills: 'AI, UX, web' },
-    { id: 2, name: 'DataMinds', skills: 'Data Science, Python' },
-    { id: 3, name: 'Qadam Devs', skills: 'Full-stack, mobile' },
-    { id: 4, name: 'GreenByte', skills: 'Analytics, ML' },
-    { id: 5, name: 'FutureFive', skills: 'Product, frontend' }
+    { id: 1, name: 'CodeNomads', skills: 'AI, UX, web', interests: 'Retail', technologies: 'React, JavaScript' },
+    { id: 2, name: 'DataMinds', skills: 'Data Science', interests: 'FinTech', technologies: 'Python, pandas' },
+    { id: 3, name: 'Qadam Devs', skills: 'Full-stack, mobile', interests: 'HealthTech', technologies: 'JavaScript, Python' },
+    { id: 4, name: 'GreenByte', skills: 'Analytics, ML', interests: 'GovTech', technologies: 'Python, SQLite' },
+    { id: 5, name: 'FutureFive', skills: 'Product, frontend', interests: 'EdTech', technologies: 'Figma, HTML, CSS' }
   ];
   const tasks = [
     { id: 's1', title: 'Умная маршрутизация обращений', topic: 'Retail', company: 'Qadam Store', context: 'Интернет-магазин получает много однотипных обращений, операторы вручную распределяют их между отделами.', users: 'Операторы поддержки и руководитель контакт-центра', data: 'Обезличенные примеры обращений и категории отделов.', result: 'Прототип подсказки категории и маршрута обращения.', success: 'Сократить среднее время распределения на 20% в тесте.', constraints: 'Не использовать персональные данные. Прототип за 3 недели.', contact: 'Алия, product@qadam.example', format: 'Еженедельная встреча и обратная связь в чате.', published: true },

@@ -241,7 +241,7 @@ class SanaMatchHTTPTests(unittest.TestCase):
         self.assertEqual(status, 404)
         self.assertEqual(invalid["error"]["code"], "TEAM_NOT_FOUND")
 
-    def test_one_concurrent_selection_and_no_repeat_points(self):
+    def test_multiple_selections_require_confirmed_progress_for_points(self):
         status, added = self.request(
             "POST", "/api/responses", self.valid_response(taskId="s1", teamId=1)
         )
@@ -258,19 +258,93 @@ class SanaMatchHTTPTests(unittest.TestCase):
             second = executor.submit(choose, response_id)
             barrier.wait(timeout=5)
             statuses = sorted((first.result(timeout=10), second.result(timeout=10)))
-        self.assertEqual(statuses, [200, 409])
+        self.assertEqual(statuses, [200, 200])
         status, teams = self.request("GET", "/api/teams")
         self.assertEqual(status, 200)
-        self.assertEqual(sum(team["progressPoints"] for team in teams["teams"]), 100)
+        self.assertEqual(sum(team["progressPoints"] for team in teams["teams"]), 0)
         status, selected = self.request("GET", "/api/responses")
         self.assertEqual(status, 200)
         winner = [response for response in selected["responses"] if response["taskId"] == "s1" and response["status"] == "selected"]
-        self.assertEqual(len(winner), 1)
+        self.assertEqual(len(winner), 2)
         status, repeated = self.request("PATCH", "/api/responses/" + winner[0]["id"], {"status": "selected"})
         self.assertEqual(status, 409)
         self.assertEqual(repeated["error"]["code"], "RESPONSE_ALREADY_RESOLVED")
         teams_after = self.request("GET", "/api/teams")[1]["teams"]
-        self.assertEqual(sum(team["progressPoints"] for team in teams_after), 100)
+        self.assertEqual(sum(team["progressPoints"] for team in teams_after), 0)
+        for response in winner:
+            status, confirmed = self.request("PATCH", "/api/responses/" + response["id"], {
+                "progressConfirmed": True, "progressNote": "Бизнес проверил демонстрационный прототип."
+            })
+            self.assertEqual(status, 200)
+            self.assertTrue(confirmed["response"]["progressConfirmed"])
+        self.assertEqual(sum(team["progressPoints"] for team in self.request("GET", "/api/teams")[1]["teams"]), 200)
+        self._restart_server()
+        self.assertEqual(sum(team["progressPoints"] for team in self.request("GET", "/api/teams")[1]["teams"]), 200)
+
+    def test_progress_requires_selected_team_and_a_nonempty_note(self):
+        payload = {"progressConfirmed": True, "progressNote": "Этап проверен"}
+        status, result = self.request("PATCH", "/api/responses/r1", payload)
+        self.assertEqual(status, 409)
+        self.assertEqual(result["error"]["code"], "TEAM_NOT_SELECTED")
+        self.request("PATCH", "/api/responses/r1", {"status": "selected"})
+        for invalid in [False, 1, "true"]:
+            self.assertEqual(self.request("PATCH", "/api/responses/r1", {**payload, "progressConfirmed": invalid})[0], 400)
+        for invalid in ["", "  ", 15, "x" * 1001]:
+            self.assertEqual(self.request("PATCH", "/api/responses/r1", {**payload, "progressNote": invalid})[0], 400)
+        self.request("PATCH", "/api/responses/r2", {"status": "rejected"})
+        self.assertEqual(self.request("PATCH", "/api/responses/r2", payload)[0], 409)
+
+    def test_concurrent_progress_confirmation_awards_points_only_once(self):
+        self.request("PATCH", "/api/responses/r1", {"status": "selected"})
+        barrier = threading.Barrier(3)
+
+        def confirm():
+            barrier.wait(timeout=5)
+            return self.request("PATCH", "/api/responses/r1", {
+                "progressConfirmed": True, "progressNote": "Проверен прототип классификатора."
+            })[0]
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            first, second = executor.submit(confirm), executor.submit(confirm)
+            barrier.wait(timeout=5)
+            self.assertEqual(sorted([first.result(timeout=10), second.result(timeout=10)]), [200, 409])
+        self.assertEqual(sum(team["progressPoints"] for team in self.request("GET", "/api/teams")[1]["teams"]), 100)
+
+    def test_legacy_database_migrates_without_losing_decisions(self):
+        database = self.project_root / "legacy.sqlite3"
+        connection = main.connect_database(database)
+        connection.executescript("""
+            CREATE TABLE teams (id INTEGER PRIMARY KEY, name TEXT NOT NULL, skills TEXT NOT NULL);
+            CREATE TABLE responses (id TEXT PRIMARY KEY, task_id TEXT NOT NULL, team_id INTEGER NOT NULL,
+                idea TEXT NOT NULL, plan TEXT NOT NULL, link TEXT NOT NULL, status TEXT NOT NULL);
+            CREATE UNIQUE INDEX one_selected_team_per_task ON responses(task_id) WHERE status='selected';
+            INSERT INTO teams VALUES (42, 'Сохранённая команда', 'Python');
+            INSERT INTO responses VALUES ('legacy', 's1', 42, 'Сохранённая идея', 'План', 'https://example.com', 'selected');
+        """)
+        connection.close()
+        main.initialize_database(database)
+        main.initialize_database(database)
+        stored = next(response for response in main.list_responses(database) if response["id"] == "legacy")
+        self.assertEqual(stored["idea"], "Сохранённая идея")
+        self.assertEqual(stored["status"], "selected")
+        self.assertFalse(stored["progressConfirmed"])
+        self.assertEqual(len(main.list_responses(database)), 6)
+        self.assertEqual(main.patch_response(database, "r1", {"status": "selected"})["status"], "selected")
+        self.assertEqual(sum(team["progressPoints"] for team in main.list_teams(database)), 0)
+
+    def test_five_drafts_and_complete_team_profiles(self):
+        drafts = json.loads((SERVER_DIR.parent / "data" / "demo-drafts.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(drafts), 5)
+        self.assertEqual(len({item["id"] for item in drafts}), 5)
+        self.assertGreater(len({item["completeness"] for item in drafts}), 1)
+        for item in drafts:
+            self.assertTrue(item["text"].strip())
+            self.assertTrue(item["topic"].strip())
+        teams = self.request("GET", "/api/teams")[1]["teams"]
+        self.assertEqual(len(teams), 5)
+        for team in teams:
+            for field in ("name", "skills", "interests", "technologies"):
+                self.assertTrue(team[field].strip())
 
     def test_static_allowlist_blocks_env_database_server_and_git(self):
         status, body = self.request("GET", "/")

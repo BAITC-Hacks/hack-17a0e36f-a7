@@ -107,6 +107,45 @@ test('prototype URL validation blocks executable schemes and embedded credential
   assert.equal(app.context.validPrototypeUrl('https://example.com/prototype'), true);
 });
 
+test('business can select multiple teams; only a confirmed stage awards points', async () => {
+  const app = appHarness();
+  app.context.window.SanaMatchDemo.save = () => true;
+  app.run("teams = [{id:1,name:'One'},{id:2,name:'Two'}]; responses = [{id:'a',taskId:'t',teamId:1,status:'pending'},{id:'b',taskId:'t',teamId:2,status:'pending'}]");
+  await app.context.setResponseStatus('a', 'selected');
+  await app.context.setResponseStatus('b', 'selected');
+  assert.equal(app.run("responses.filter(item => item.status === 'selected').length"), 2);
+  assert.ok(app.node('leaderboardList').children.every(row => row.innerHTML.includes('0 pts')));
+  app.node('progress-note-a').value = 'Проверен работающий прототип';
+  await app.context.confirmResponseProgress('a');
+  assert.equal(app.run("responses.find(item => item.id === 'a').progressConfirmed"), true);
+  assert.equal(app.run("responses.find(item => item.id === 'a').progressNote"), 'Проверен работающий прототип');
+  assert.ok(app.node('leaderboardList').children[0].innerHTML.includes('100 pts'));
+  await app.context.confirmResponseProgress('a');
+  assert.ok(app.node('leaderboardList').children[0].innerHTML.includes('100 pts'));
+});
+
+test('progress cannot be confirmed for an unselected response or without a note', async () => {
+  const app = appHarness();
+  app.context.window.SanaMatchDemo.save = () => { throw new Error('Must not save'); };
+  app.run("responses = [{id:'a',taskId:'t',teamId:1,status:'pending'}]");
+  await app.context.confirmResponseProgress('a');
+  app.run("responses[0].status='selected'");
+  app.node('progress-note-a').value = '  ';
+  await app.context.confirmResponseProgress('a');
+  assert.equal(app.run('responses[0].progressConfirmed'), undefined);
+});
+
+test('API progress confirmation uses its own explicit contract', async () => {
+  let captured;
+  const api = apiWith(async (url, options) => {
+    captured = {url, method:options.method, payload:JSON.parse(options.body)};
+    return {ok:true,json:async()=>({response:{id:'r1',progressConfirmed:true}})};
+  });
+  const saved = await api.confirmProgress('r1', 'Проверен прототип');
+  assert.equal(saved.progressConfirmed, true);
+  assert.deepEqual(captured, {url:'/api/responses/r1',method:'PATCH',payload:{progressConfirmed:true,progressNote:'Проверен прототип'}});
+});
+
 function demoHarness(value = null) {
   const context = vm.createContext({ window: {}, structuredClone, setTimeout: callback => callback(), localStorage: { getItem: () => value, setItem() {} } });
   vm.runInContext(source('ui/demo-adapter.js'), context);

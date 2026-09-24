@@ -63,11 +63,11 @@ STATIC_FILES = {
 }
 
 SEED_TEAMS = [
-    {"id": 1, "name": "Code Nomads", "skills": "React, UX, AI-агенты"},
-    {"id": 2, "name": "DataMinds", "skills": "Python, аналитика, ML"},
-    {"id": 3, "name": "Pixel Pioneers", "skills": "Product design, frontend"},
-    {"id": 4, "name": "Qadam Tech", "skills": "Backend, интеграции"},
-    {"id": 5, "name": "Future Five", "skills": "EdTech, GenAI"},
+    {"id": 1, "name": "Code Nomads", "skills": "UX, AI-агенты", "interests": "Retail, клиентская поддержка", "technologies": "React, JavaScript"},
+    {"id": 2, "name": "DataMinds", "skills": "Аналитика, ML", "interests": "FinTech, анализ данных", "technologies": "Python, pandas"},
+    {"id": 3, "name": "Pixel Pioneers", "skills": "Product design, frontend", "interests": "HealthTech, доступные интерфейсы", "technologies": "Figma, HTML, CSS"},
+    {"id": 4, "name": "Qadam Tech", "skills": "Backend, интеграции", "interests": "GovTech, городские сервисы", "technologies": "Python, SQLite"},
+    {"id": 5, "name": "Future Five", "skills": "EdTech, GenAI", "interests": "Образование, учебные проекты", "technologies": "JavaScript, Python"},
 ]
 SEED_TASKS = [
     {
@@ -216,7 +216,9 @@ CREATE TABLE IF NOT EXISTS tasks (
 CREATE TABLE IF NOT EXISTS teams (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
-    skills TEXT NOT NULL
+    skills TEXT NOT NULL,
+    interests TEXT NOT NULL DEFAULT '',
+    technologies TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS responses (
     id TEXT PRIMARY KEY,
@@ -226,11 +228,11 @@ CREATE TABLE IF NOT EXISTS responses (
     plan TEXT NOT NULL,
     link TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('pending', 'selected', 'rejected')),
+    progress_confirmed INTEGER NOT NULL DEFAULT 0 CHECK (progress_confirmed IN (0, 1)),
+    progress_note TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (task_id, team_id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS one_selected_team_per_task
-ON responses(task_id) WHERE status = 'selected';
 CREATE INDEX IF NOT EXISTS responses_status_idx ON responses(status);
 """
 
@@ -398,14 +400,30 @@ def initialize_database(db_path):
     finally:
         connection.close()
     with transaction(db_path, immediate=True) as connection:
+        # Non-destructive migration: keep tasks, decisions and responses intact.
+        for table, fields in (
+            ("teams", {"interests": "TEXT NOT NULL DEFAULT ''", "technologies": "TEXT NOT NULL DEFAULT ''"}),
+            ("responses", {"progress_confirmed": "INTEGER NOT NULL DEFAULT 0 CHECK (progress_confirmed IN (0, 1))", "progress_note": "TEXT NOT NULL DEFAULT ''"}),
+        ):
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(" + table + ")")}
+            for column, definition in fields.items():
+                if column not in columns:
+                    connection.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition)
+        connection.execute("DROP INDEX IF EXISTS one_selected_team_per_task")
+        for team in SEED_TEAMS:
+            connection.execute(
+                "UPDATE teams SET interests = CASE WHEN interests = '' THEN ? ELSE interests END, "
+                "technologies = CASE WHEN technologies = '' THEN ? ELSE technologies END WHERE id = ?",
+                (team["interests"], team["technologies"], team["id"]),
+            )
         seeded = connection.execute(
             "SELECT value FROM app_meta WHERE key = ?", ("demo_seed_v1",)
         ).fetchone()
         if seeded is not None:
             return
         connection.executemany(
-            "INSERT INTO teams(id,name,skills) VALUES (?,?,?)",
-            [(team["id"], team["name"], team["skills"]) for team in SEED_TEAMS],
+            "INSERT INTO teams(id,name,skills,interests,technologies) VALUES (?,?,?,?,?)",
+            [(team["id"], team["name"], team["skills"], team["interests"], team["technologies"]) for team in SEED_TEAMS],
         )
         for task in SEED_TASKS:
             _insert_task(connection, task)
@@ -466,6 +484,8 @@ def _response_from_row(row):
         "plan": row["plan"],
         "link": row["link"],
         "status": row["status"],
+        "progressConfirmed": bool(row["progress_confirmed"]),
+        "progressNote": row["progress_note"],
     }
 
 
@@ -587,8 +607,8 @@ def list_teams(db_path):
     connection = connect_database(db_path)
     try:
         rows = connection.execute(
-            """SELECT t.id,t.name,t.skills,COUNT(r.id)*100 AS progress_points
-            FROM teams t LEFT JOIN responses r ON r.team_id=t.id AND r.status='selected'
+            """SELECT t.id,t.name,t.skills,t.interests,t.technologies,COUNT(r.id)*100 AS progress_points
+            FROM teams t LEFT JOIN responses r ON r.team_id=t.id AND r.status='selected' AND r.progress_confirmed=1
             GROUP BY t.id ORDER BY t.id"""
         ).fetchall()
         return [
@@ -596,6 +616,8 @@ def list_teams(db_path):
                 "id": row["id"],
                 "name": row["name"],
                 "skills": row["skills"],
+                "interests": row["interests"],
+                "technologies": row["technologies"],
                 "progressPoints": row["progress_points"],
             }
             for row in rows
@@ -684,38 +706,39 @@ def create_response(db_path, payload):
 
 
 def patch_response(db_path, response_id, payload):
-    if not isinstance(payload, dict) or set(payload) != {"status"}:
-        raise ApiError(400, "INVALID_RESPONSE_STATUS", "Передайте только status: selected или rejected.")
-    status = payload["status"]
-    if status not in ("selected", "rejected"):
+    if not isinstance(payload, dict) or set(payload) not in ({"status"}, {"progressConfirmed", "progressNote"}):
+        raise ApiError(400, "INVALID_RESPONSE_STATUS", "Передайте status или подтверждение выполненного этапа с описанием.")
+    confirming_progress = "progressConfirmed" in payload
+    status = payload.get("status")
+    note = payload.get("progressNote", "")
+    if confirming_progress and (payload["progressConfirmed"] is not True or not isinstance(note, str) or not note.strip() or len(note) > 1000):
+        raise ApiError(400, "INVALID_PROGRESS", "Опишите подтверждённый выполненный этап (до 1000 символов).")
+    if not confirming_progress and status not in ("selected", "rejected"):
         raise ApiError(400, "INVALID_RESPONSE_STATUS", "Статус должен быть selected или rejected.")
     if not is_safe_id(response_id):
         raise ApiError(404, "RESPONSE_NOT_FOUND", "Отклик не найден.")
-    try:
-        with transaction(db_path, immediate=True) as connection:
-            row = connection.execute("SELECT * FROM responses WHERE id = ?", (response_id,)).fetchone()
-            if row is None:
-                raise ApiError(404, "RESPONSE_NOT_FOUND", "Отклик не найден.")
+    with transaction(db_path, immediate=True) as connection:
+        row = connection.execute("SELECT * FROM responses WHERE id = ?", (response_id,)).fetchone()
+        if row is None:
+            raise ApiError(404, "RESPONSE_NOT_FOUND", "Отклик не найден.")
+        if confirming_progress:
+            if row["status"] != "selected":
+                raise ApiError(409, "TEAM_NOT_SELECTED", "Сначала выберите команду вручную.")
+            if row["progress_confirmed"]:
+                raise ApiError(409, "PROGRESS_ALREADY_CONFIRMED", "Этап уже подтверждён; повторные баллы не начисляются.")
+            connection.execute(
+                "UPDATE responses SET progress_confirmed = 1, progress_note = ? WHERE id = ?",
+                (note.strip(), response_id),
+            )
+        else:
             if row["status"] != "pending":
                 raise ApiError(409, "RESPONSE_ALREADY_RESOLVED", "Отклик уже обработан.")
-            if status == "selected":
-                selected = connection.execute(
-                    "SELECT id FROM responses WHERE task_id = ? AND status = 'selected'",
-                    (row["task_id"],),
-                ).fetchone()
-                if selected is not None:
-                    raise ApiError(409, "TEAM_ALREADY_SELECTED", "Для этой задачи уже выбрана команда.")
             connection.execute(
                 "UPDATE responses SET status = ? WHERE id = ? AND status = 'pending'",
                 (status, response_id),
             )
-            updated = connection.execute(
-                "SELECT * FROM responses WHERE id = ?", (response_id,)
-            ).fetchone()
-            result = _response_from_row(updated)
-    except sqlite3.IntegrityError:
-        raise ApiError(409, "TEAM_ALREADY_SELECTED", "Для этой задачи уже выбрана команда.")
-    return result
+        updated = connection.execute("SELECT * FROM responses WHERE id = ?", (response_id,)).fetchone()
+        return _response_from_row(updated)
 
 
 def _load_ai_service(project_root):

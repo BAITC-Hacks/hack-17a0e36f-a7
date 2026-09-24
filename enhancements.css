@@ -158,3 +158,6 @@
 /* Keep long prototype URLs inside response cards on narrow screens. */
 .response > div { min-width: 0; }
 .response a { overflow-wrap: anywhere; }
+.response-actions { flex-wrap: wrap; min-width: 0; }
+.response-actions input, .response-actions p { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+.response-actions [data-progress-id] { white-space: normal; text-align: center; }

@@ -27,6 +27,7 @@ let proposalBusy = false;
 let failedChatRequest = null;
 let undoSnapshot = null;
 let activeDetailTask = null;
+const progressRequests = new Set();
 
 function emptyCard() {
   return { id: '', title: '', context: '', users: '', data: '', constraints: '', result: '', success: '', contact: '', format: '', topic: 'Retail', company: '', published: false };
@@ -382,6 +383,20 @@ function renderResponses() {
       actions.append(select, reject);
     } else {
       const status = document.createElement('span'); status.className = 'selected-state'; status.textContent = response.status === 'selected' ? '✓ Команда выбрана вручную' : 'Отклонено'; actions.append(status);
+      if (response.status === 'selected') {
+        if (response.progressConfirmed) {
+          const progress = document.createElement('p'); progress.className = 'selected-state';
+          progress.textContent = `✓ Этап подтверждён · +100 points: ${response.progressNote || ''}`;
+          actions.append(progress);
+        } else {
+          const note = document.createElement('input'); note.id = `progress-note-${response.id}`;
+          note.placeholder = 'Какой выполненный этап вы проверили?'; note.maxLength = 1000;
+          note.setAttribute('aria-label', `Подтверждённый этап: ${team.name || 'команда'}`);
+          const confirm = document.createElement('button'); confirm.className = 'small-btn pick'; confirm.type = 'button';
+          confirm.dataset.progressId = response.id; confirm.textContent = 'Подтвердить выполненный этап (+100)';
+          actions.append(note, confirm);
+        }
+      }
     }
     article.append(body, actions); list.append(article);
   });
@@ -389,7 +404,7 @@ function renderResponses() {
 }
 function renderLeaderboard() {
   const board = $('leaderboardList'); board.replaceChildren();
-  teams.map(team => ({ ...team, points: responses.filter(response => String(response.teamId) === String(team.id) && response.status === 'selected').length * 100 }))
+  teams.map(team => ({ ...team, points: responses.filter(response => String(response.teamId) === String(team.id) && response.status === 'selected' && response.progressConfirmed === true).length * 100 }))
     .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'ru'))
     .forEach((team, index) => {
       const row = document.createElement('div'); row.className = 'leaderboard-row';
@@ -475,7 +490,6 @@ async function sendProposal() {
 async function setResponseStatus(id, status) {
   const response = responses.find(item => String(item.id) === String(id));
   if (!response || response.status !== 'pending' || !['selected', 'rejected'].includes(status)) return;
-  if (status === 'selected' && responses.some(item => String(item.taskId) === String(response.taskId) && item.status === 'selected' && String(item.id) !== String(id))) { notify('Для этой задачи уже выбрана команда.'); return; }
   try {
     if (isApiMode) {
       const updated = await window.SanaMatchApi.updateResponse(id, status);
@@ -486,6 +500,26 @@ async function setResponseStatus(id, status) {
     }
     renderResponses(); notify(status === 'selected' ? 'Команда выбрана вручную.' : 'Отклик отклонён.');
   } catch (error) { notify(error.message || 'Не удалось сохранить решение. Попробуйте ещё раз.'); }
+}
+async function confirmResponseProgress(id) {
+  const response = responses.find(item => String(item.id) === String(id));
+  if (!response || response.status !== 'selected' || response.progressConfirmed || progressRequests.has(id)) return;
+  const input = $(`progress-note-${id}`);
+  const note = text(input.value);
+  if (!note || note.length > 1000) { notify('Опишите выполненный этап, который бизнес действительно проверил (до 1000 символов).'); input.focus(); return; }
+  progressRequests.add(id);
+  try {
+    if (isApiMode) {
+      const updated = await window.SanaMatchApi.confirmProgress(id, note);
+      responses = responses.map(item => String(item.id) === String(id) ? { ...item, ...updated } : item);
+    } else {
+      const previous = responses;
+      responses = responses.map(item => String(item.id) === String(id) ? { ...item, progressConfirmed: true, progressNote: note } : item);
+      try { await persistDemo(); } catch (error) { responses = previous; throw error; }
+    }
+    renderResponses(); notify('Выполненный этап подтверждён бизнесом. Начислено 100 points.');
+  } catch (error) { notify(error.message || 'Не удалось подтвердить этап. Описание сохранено в форме.'); }
+  finally { progressRequests.delete(id); }
 }
 async function loadApiData() {
   const results = await Promise.allSettled([window.SanaMatchApi.getTasks(), window.SanaMatchApi.getTeams(), window.SanaMatchApi.getResponses()]);
@@ -507,7 +541,7 @@ async function init() {
     const demo = window.SanaMatchDemo.load();
     tasks = demo.tasks; responses = demo.responses; teams = window.SanaMatchDemo.teams;
   }
-  $('teamSelect').innerHTML = teams.map(team => `<option value="${escapeHtml(team.id)}">${escapeHtml(team.name)} — ${escapeHtml(team.skills || '')}</option>`).join('');
+  $('teamSelect').innerHTML = teams.map(team => `<option value="${escapeHtml(team.id)}">${escapeHtml(team.name)} — ${escapeHtml([team.skills, team.interests, team.technologies].filter(Boolean).join(' · '))}</option>`).join('');
   renderCatalog(); updateCardUI();
 }
 function resetDemo() {
@@ -544,7 +578,7 @@ $('publishConfirmDialog').addEventListener('click', event => { if (event.target 
 $('confirmPublishButton').addEventListener('click', () => { $('publishConfirmDialog').close(); confirmPublishTask(); });
 $('sendProposal').addEventListener('click', sendProposal);
 $('loadDemoButton').addEventListener('click', () => {
-  $('draftText').value = 'Интернет-магазин получает много однотипных обращений, операторы вручную распределяют их между отделами. Хотим сократить время обработки.';
+  $('draftText').value = 'Магазин хочет улучшить обработку обращений.';
   $('draftTopic').value = 'Retail'; $('company').value = 'Qadam Store'; $('builder').scrollIntoView({ behavior: 'smooth' }); analyzeDraft();
 });
 $('resetDemoButton').addEventListener('click', resetDemo);
@@ -557,6 +591,8 @@ $('catalogGrid').addEventListener('click', event => {
   if (respond) openProposal(respond.dataset.respondId);
 });
 $('responsesList').addEventListener('click', event => {
+  const progress = event.target.closest('[data-progress-id]');
+  if (progress) { confirmResponseProgress(progress.dataset.progressId); return; }
   const button = event.target.closest('[data-response-id]'); if (button) setResponseStatus(button.dataset.responseId, button.dataset.responseStatus);
 });
 $('closeDetailsButton').addEventListener('click', () => $('taskDetailsDialog').close());

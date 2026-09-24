@@ -42,6 +42,7 @@
     getResponses: async () => (await request('/api/responses')).responses,
     createResponse: async response => (await request('/api/responses', body(response))).response,
     updateResponse: async (id, status) => (await request(`/api/responses/${encodeURIComponent(id)}`, patch({ status }))).response,
+    confirmProgress: async (id, progressNote) => (await request(`/api/responses/${encodeURIComponent(id)}`, patch({ progressConfirmed: true, progressNote }))).response,
     chat: payload => request('/api/ai/chat', body(payload))
   });
 })();

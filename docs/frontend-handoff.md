@@ -14,7 +14,7 @@ Vanilla HTML, CSS, and JavaScript frontend. The backend contract is consumed thr
 4. The client sends `requestId`, `cardVersion`, draft, current card, history, and `language: "ru"`. It ignores a response if request ID/version no longer match the current request/card.
 5. `updates` and `suggestions` become separate pending items. Neither changes the card until `Применить`; each can be rejected. Existing and proposed values are displayed. A manual edit is visibly flagged before explicit application. The latest application can be undone.
 6. Publish opens an in-app confirmation dialog. Published tasks appear in the catalog. `Подробнее` loads the full task in API mode and shows all detail fields, with empty fields rendered as `Не указано`. The detail view can lead to the response form.
-7. A business user manually selects or rejects responses; selection updates the progress board.
+7. A business user manually selects or rejects responses and can select multiple teams. Points are awarded only after a separate confirmation of a completed stage with a nonempty note. The UI and static demo both follow this rule; selection itself gives zero points.
 
 ## API client
 
