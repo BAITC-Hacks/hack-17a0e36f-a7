@@ -387,6 +387,68 @@ class SanaMatchHTTPTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertEqual(result["error"]["code"], "AI_INVALID_REQUEST")
 
+    def test_ai_request_rejects_invalid_types_and_contract_limits(self):
+        base = {
+            "requestId": "request-1",
+            "cardVersion": 1,
+            "draft": "Черновик задачи",
+            "card": {},
+            "messages": [],
+            "language": "ru",
+        }
+        invalid_payloads = [
+            {**base, "requestId": 1},
+            {**base, "cardVersion": True},
+            {**base, "cardVersion": -1},
+            {**base, "draft": True},
+            {**base, "draft": "x" * (main.MAX_DRAFT_LENGTH + 1)},
+            {**base, "card": []},
+            {**base, "card": {"data": "x" * main.MAX_AI_CARD_BYTES}},
+            {**base, "messages": {}},
+            {**base, "messages": [{"role": "system", "content": "x"}]},
+            {**base, "messages": [{"role": "user", "content": "x" * 4001}]},
+            {
+                **base,
+                "messages": [{"role": "user", "content": "x" * 4000} for _ in range(7)],
+            },
+            {
+                **base,
+                "messages": [{"role": "user", "content": "x"} for _ in range(main.MAX_HISTORY_MESSAGES + 1)],
+            },
+            {**base, "language": "en"},
+        ]
+
+        for payload in invalid_payloads:
+            with self.subTest(payload_keys=tuple(sorted(payload)), messages=len(payload["messages"]) if isinstance(payload["messages"], list) else None):
+                status, result = self.request("POST", "/api/ai/chat", payload)
+                self.assertEqual(status, 400)
+                self.assertEqual(result["error"]["code"], "AI_INVALID_REQUEST")
+
+    def test_ai_module_failures_return_generic_json_errors(self):
+        def raises_provider_error(payload, config=None):
+            raise RuntimeError("private provider diagnostic")
+
+        payload = {
+            "requestId": "error-check",
+            "cardVersion": 0,
+            "draft": "Черновик задачи",
+            "card": {},
+            "messages": [],
+            "language": "ru",
+        }
+        failing_service = SimpleNamespace(respond_turn=raises_provider_error)
+        self._restart_server(ai_service_loader=lambda root: failing_service, environment={})
+        status, result = self.request("POST", "/api/ai/chat", payload)
+        self.assertEqual(status, 502)
+        self.assertEqual(result["error"]["code"], "AI_SERVICE_ERROR")
+        self.assertNotIn("private provider diagnostic", json.dumps(result))
+
+        malformed_service = SimpleNamespace(respond_turn=lambda payload, config=None: {"mode": "fallback"})
+        self._restart_server(ai_service_loader=lambda root: malformed_service, environment={})
+        status, result = self.request("POST", "/api/ai/chat", payload)
+        self.assertEqual(status, 502)
+        self.assertEqual(result["error"]["code"], "AI_INVALID_RESPONSE")
+
     def test_unsupported_api_methods_use_json_error_envelope(self):
         status, result = self.request("DELETE", "/api/tasks/s1")
         self.assertEqual(status, 405)

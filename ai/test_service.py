@@ -169,6 +169,15 @@ class SanaMatchServiceTests(unittest.TestCase):
         self.assertNotIn("test-secret", json.dumps(result))
         self.assertNotIn("secret-bearing", json.dumps(result))
 
+    def test_provider_timeout_uses_fallback_without_leaking_error(self):
+        config = {"provider": "openai", "api_key": "timeout-secret", "model": "mock-model"}
+        with patch("service._post_json", side_effect=TimeoutError("timeout-secret timed out")):
+            result = respond_turn(payload("Нужно улучшить процесс."), config)
+        self.assertEqual(result["mode"], "fallback")
+        self.assertIn("?", result["reply"])
+        self.assertNotIn("timeout-secret", json.dumps(result, ensure_ascii=False))
+        self.assertNotIn("timed out", json.dumps(result, ensure_ascii=False))
+
     def test_openai_adapter_builds_responses_request_from_backend_config(self):
         config = {
             "provider": "openai",

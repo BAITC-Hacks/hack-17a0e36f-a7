@@ -42,4 +42,4 @@ The local adapter uses only `sanamatch_demo_v2_tasks` and `sanamatch_demo_v2_res
 - Temporary local API fixture: exercised health/data load, first chat request returning 503, retry, full task detail GET, low-rating catalog visibility, response POST and manual status PATCH, plus task publish confirmation and POST.
 - Browser console error/warning log was empty during the API interaction run.
 
-The API fixture used for this verification was temporary and is not part of the repository. Live backend behavior still needs verification after Lead provides a running server and final response samples.
+The original API fixture used for frontend delivery was temporary and is not part of the repository. Lead later verified the integrated SQLite backend and local AI fallback in a real browser; the authoritative results are in `docs/integration-qa.md`. A live external LLM response remains intentionally unverified until Lead approves a paid end-to-end call.

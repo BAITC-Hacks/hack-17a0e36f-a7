@@ -154,3 +154,7 @@
 .publish-dialog h2 { margin: 4px 0 8px; font-size: clamp(24px, 4vw, 34px); line-height: 1.15; }
 .publish-confirm-copy { color: #526258; line-height: 1.6; }
 @media(max-width:540px){.publish-dialog{padding:18px}.publish-dialog .dialog-actions{display:grid;grid-template-columns:1fr}.publish-dialog .dialog-actions .button{width:100%}}
+
+/* Keep long prototype URLs inside response cards on narrow screens. */
+.response > div { min-width: 0; }
+.response a { overflow-wrap: anywhere; }

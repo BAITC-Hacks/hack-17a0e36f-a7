@@ -1,66 +1,63 @@
-INTEGRATION UPDATE (2026-09-23): Lead completed real-browser integration with this backend. Nested API errors are now displayed correctly; the API-mode button starts a new draft without deleting server data. There is no server reset panel. See `integration-qa.md` for final checks. The handoff below records the backend delivery before integration.
-
 STATUS:
-Implemented a Python 3.9+ standard-library HTTP server backed by SQLite. It serves the approved local frontend assets and provides task, team, response, health, and AI proxy routes. The frontend currently calls the same-origin API when its health check succeeds and falls back to the browser demo adapter when the server is unavailable.
+The backend is implemented in Python 3.9+ using only the standard library and SQLite. It provides same-origin API routes and serves only the approved frontend asset allowlist. Lead's integration QA on 2026-09-23 reports the browser-to-HTTP-to-SQLite demo path passing, including persistence across reload and a second browser context. The backend tests now include explicit AI boundary type, limit, exception, and malformed-response coverage.
 
 FILES:
-- `server/main.py` — HTTP routes, SQLite schema and one-time seed, validation, readiness scoring, AI configuration/proxy boundary, and static-file allowlist.
-- `server/tests/test_main.py` — API tests using temporary project roots, temporary SQLite databases, and ephemeral loopback ports.
-- `.env.example` — environment variable names with empty placeholders only.
-- `.gitignore` — preserves `.playwright-cli/` and `output/`, and excludes `.env`, Python caches, and SQLite artifacts.
-- `docs/backend-handoff.md` — this handoff.
+- `server/main.py` — API routes, SQLite schema/seed, validation, readiness calculation, AI configuration/proxy boundary, and static-file allowlist.
+- `server/tests/test_main.py` — reproducible backend/API tests on temporary project roots and temporary SQLite databases.
+- `docs/backend-handoff.md` — this backend delivery and runtime handoff.
 
 RUN COMMAND:
-From the `SanaMatch` directory:
+From the repository root:
 
 ```bash
 python3 server/main.py --port 4174
 ```
 
-The default bind address is `127.0.0.1`. The database is created at `server/data/sanamatch.sqlite3`; `SANAMATCH_DB_PATH` in `.env` can override it. The server does not bind to or modify port `4173`.
+Open `http://localhost:4174`. The default bind is loopback (`127.0.0.1`). The default database path is `server/data/sanamatch.sqlite3`; `SANAMATCH_DB_PATH` in the local environment or `.env` can override it. Starting the server does not use port `4173`. To stop the foreground server started by this command, press `Ctrl+C` in that terminal. Do not terminate an unrelated process by guessing its PID.
 
 API:
-All API responses are JSON. Errors use `{ "error": { "code": "...", "message": "..." } }`.
+All API responses are JSON; errors use `{ "error": { "code": "...", "message": "..." } }`.
 
-- `GET /api/health` — reports status, SQLite storage, and whether provider, key, and model settings are configured.
-- `GET /api/tasks` and `GET /api/tasks/:id` — list or fetch tasks.
-- `POST /api/tasks` — creates a draft or published task. The server generates an ID if omitted and computes `score`; a supplied score is ignored.
-- `PATCH /api/tasks/:id` — edits task fields. A published task requires nonempty `title`, `context`, and `result`; low readiness does not block publication. The ID cannot be changed.
-- `GET /api/teams` — returns teams with derived integer `progressPoints`.
-- `GET /api/responses` — lists responses.
-- `POST /api/responses` — accepts `{ "taskId", "teamId", "idea", "plan", "link" }`; validates IDs, publication, duplicate team/task pairs, nonempty idea/plan, and HTTP(S) links.
-- `PATCH /api/responses/:id` — accepts `{ "status": "selected" | "rejected" }`. Decisions are final. SQLite transaction locking and a unique partial index prevent two teams being selected for one task, including concurrent requests. A selected response adds exactly 100 derived progress points.
-- `POST /api/ai/chat` — validates the approved request and size limits, loads provider settings only from process environment or `.env`, calls the AI/ML-owned `ai/service.py::respond_turn(payload, config=config)`, and returns the original `requestId` and `cardVersion`. It returns `503 AI_NOT_READY` if the AI module cannot load.
+- `GET /api/health` — reports API status, SQLite storage, and `aiConfigured`. `aiConfigured: true` means provider, key, and model settings are present; it does not prove a live LLM call succeeds.
+- `GET /api/tasks`, `GET /api/tasks/:id` — list/fetch tasks.
+- `POST /api/tasks` — create a draft or published task. The server generates the ID when omitted and computes the score; a supplied score is ignored.
+- `PATCH /api/tasks/:id` — update task fields. Publishing requires nonempty title, context, and result. A low score does not block publishing; an existing ID cannot be changed.
+- `GET /api/teams` — list teams and derived `progressPoints`.
+- `GET /api/responses` — list responses.
+- `POST /api/responses` — create a response for a known team and published task. Duplicate team/task pairs, blank idea/plan, and non-HTTP(S) links are rejected.
+- `PATCH /api/responses/:id` — select or reject a response. Decisions are final; a database constraint and write transaction allow at most one selected team per task, including concurrent requests. Selection gives 100 derived progress points once.
+- `POST /api/ai/chat` — validates the approved AI request, passes it to `ai/service.py::respond_turn(payload, config=config)`, and returns the request's original `requestId` and `cardVersion`. AI exceptions and malformed AI output are returned as generic JSON 502 errors; provider details are not leaked.
 
-The server computes readiness with weights: context 20, data 20, result 15, success 15, constraints 10, users 10, contact and format together 10. Levels are 0–39 Draft, 40–69 Working, 70–89 Ready, and 90–100 Priority. Demo records are seeded once per database and are not overwritten on later starts.
+The server computes readiness: context 20, data 20, result 15, success 15, constraints 10, users 10, contact plus format 10. Labels are 0–39 Draft, 40–69 Working, 70–89 Ready, and 90–100 Priority. Synthetic records are seeded once per database and are not overwritten on restarts.
 
 TEST COMMANDS AND RESULTS:
 
 ```bash
-python3 -m unittest discover -s server/tests -v
-python3 -m unittest discover -s ai -p 'test_service.py' -v
+python3 -m unittest discover -s server/tests -p 'test_*.py' -v
 ```
 
-Results on 2026-09-23:
-- Backend/API suite: 16 tests passed.
-- AI/ML-owned service suite: 24 tests passed.
+Backend/API result on 2026-09-23: **18 tests passed**. They cover create/update, server-computed readiness, persistence after restart, seed-once behavior, duplicate responses, concurrent single selection, one-time points, JSON error envelopes, and static-file blocking for `.env`, SQLite files, server source, `.git`, README, and traversal paths. AI boundary coverage includes `requestId`/`cardVersion`, input types, body/history/card/draft limits, client-supplied configuration rejection, AI-not-ready, exception redaction, malformed AI output, and the actual local fallback without provider credentials.
 
-Backend coverage includes task create/read/patch and server-computed rating; one-time seed and persistence; score weights and all level boundaries; invalid/non-standard JSON, unsupported methods, and unknown IDs; duplicate and invalid responses; simultaneous competing selections and non-duplicated points; static allowlisting and blocked `.env`, database, server code, `.git`, README, and traversal paths; AI-not-ready behavior, stub contract/config handling, local-fallback HTTP integration; and request/history size limits. The static allowlist includes the frontend API client and demo adapter scripts.
-
-Tests use temporary directories and databases, and bind only ephemeral loopback ports. The AI integration test uses empty provider configuration and exercises local fallback without a paid or external request. Tests do not touch a working database or bind port `4173`.
+Tests use temporary project roots, temporary SQLite files, and ephemeral loopback ports. They do not reset or write the demo database and do not bind `4173`. The current AI/ML suite also passed 25 tests in this QA pass. `docs/integration-qa.md` records an earlier run with 24 AI tests and 12 UI integration tests, plus browser-to-SQLite scenarios.
 
 AI INTEGRATION:
-The backend dynamically loads the AI/ML-owned `ai/service.py` and passes the approved payload with `provider`, `api_key`, `model`, `base_url`, and `timeout_seconds`. Prompting and fallback behavior remain owned by the AI module. Configure `AI_PROVIDER`, `AI_API_KEY`, and `AI_MODEL`; `AI_BASE_URL` is optional and `AI_TIMEOUT_SECONDS` defaults to 30 and is capped at 60. Credentials are not returned by health or chat routes, and request bodies are not logged. Limits are 5000 characters for draft text, 20 chat messages/24000 combined history characters, and 64 KiB for the full request body.
+The backend owns only the HTTP boundary. It reads provider settings at startup from the process environment or `.env`; the AI/ML chat owns AI setup and `.env`. The backend passes `provider`, `api_key`, `model`, `base_url`, and `timeout_seconds` to the AI service. Request body is limited to 64 KiB, draft to 5000 characters, card JSON to 24000 bytes, history to 20 messages/24000 combined characters, and each history message to 4000 characters. Health configuration status is not an LLM availability check. Live external-provider success was not part of integration QA.
+
+DATA PRESERVATION:
+The configured SQLite database persists tasks and responses across backend restarts. Tests use disposable temporary databases only. Do not delete the working database to reset the demo. The UI's “Новая задача” clears only the current in-memory draft; it keeps published tasks and responses. Chat and unpublished draft state are not persisted.
 
 LIMITATIONS:
-- This is a local demo server without accounts, roles, authentication, or public-deployment hardening.
-- If the health check fails, the frontend falls back to its browser demo adapter and localStorage. Existing localStorage data is not migrated into SQLite. In API mode, the reset-demo button explains that resetting is handled through a server panel; no server reset route is defined.
-- The UI API client currently looks for a top-level error `message`, while the API contract nests it at `error.message`; users may see a generic HTTP error for API failures. Frontend files are outside backend ownership.
-- If the AI/ML-owned `ai/service.py` is absent at runtime, the chat route returns `AI_NOT_READY`.
-- SQLite is local to the server host; this does not provide cloud hosting or multi-machine deployment.
+- This is a local demo without user accounts, authorization, or public-deployment hardening. Do not expose it to the public internet.
+- Live external LLM success, load testing, and a full security audit have not been confirmed. The local AI fallback is covered by a no-key integration test.
+- SQLite is local to the server host; there is no multi-machine sync.
 
 NEXT FOR LEAD:
-- Ask the frontend owner to update API error parsing to read `payload.error.message` and, where useful, `payload.error.code` without changing the agreed API envelope.
-- Confirm the demo reset experience in API mode; the backend currently has no reset route, so any server-side reset needs an agreed contract and ownership decision.
-- Keep the AI/ML-owned `ai/service.py` response contract aligned with the proxy; its 24-test suite passes, and the backend integration covers its no-key fallback.
-- Review access needs before binding beyond `127.0.0.1`; this demo server is not authenticated.
+- The AI/ML chat confirmed its `.env` setup is complete. The key is intentionally blank, so `aiConfigured` is `false`; the local fallback is active. After the key is added locally, restart this process to load it. Treat `aiConfigured: true` only as configuration presence, not proof of a successful LLM request.
+- Keep the service bound to `127.0.0.1` for the demo. Stop only this process with `Ctrl+C` in terminal session `41593`; exact PID command at handoff: `kill -TERM 20181`.
+
+FINAL DEMO RUNTIME:
+- State: running and health-checked on loopback.
+- URL: `http://localhost:4174` (`GET /api/health` returned `200`).
+- Process: PID `20181`, command `python3 server/main.py --port 4174`, started in terminal session `41593`.
+- Health: `{"status":"ok","storage":"sqlite","aiConfigured":false}`; this uses local AI fallback until a key is configured.
+- SQLite path: `/Users/mak/Documents/Hackathon/SanaMatch/server/data/sanamatch.sqlite3` (45,056 bytes at verification time). Tests did not access or reset it.
