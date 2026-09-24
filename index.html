@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SanaMatch — задачи для студентов</title>
+    <meta name="theme-color" content="#f4f8f3" />
+    <title>SanaMatch — задачи для студенческих команд</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,97 +17,103 @@
   <body>
     <header class="topbar">
       <a class="brand" href="#top">Sana<span>Match</span></a>
-      <nav><a href="#builder">Создать задачу</a><a href="#catalog">Каталог</a><a href="#responses">Отклики</a></nav>
-      <span class="status-dot">MVP готов к демо</span>
+      <nav aria-label="Основная навигация"><a href="#builder">Создать задачу</a><a href="#catalog">Каталог</a><a href="#responses">Отклики</a></nav>
+      <span id="connectionBadge" class="status-dot" role="status">Проверяем режим…</span>
     </header>
 
     <main id="top">
       <section class="hero">
         <div>
           <p class="eyebrow">AI Sana Challenge Hub</p>
-          <h1>Превращаем короткую бизнес-идею в задачу, к которой хочется присоединиться.</h1>
-          <p class="lead">SanaMatch задаёт уточняющие вопросы, прозрачно оценивает готовность задачи и помогает бизнесу вручную выбрать студенческую команду.</p>
-          <div class="hero-actions"><a class="button primary" href="#builder">Создать задачу <span>→</span></a><button id="loadDemoButton" class="button ghost">Загрузить демо-кейс</button></div>
+          <h1>Превращаем бизнес-задачу в проект, к которому хочется присоединиться.</h1>
+          <p class="lead">Уточните задачу в диалоге, проверьте каждое изменение карточки и выберите команду сами.</p>
+          <div class="hero-actions"><a class="button primary" href="#builder">Создать задачу <span>→</span></a><button id="loadDemoButton" class="button ghost" type="button">Загрузить демо-кейс</button></div>
         </div>
-        <div class="hero-score">
-          <p>Геймификация для бизнеса</p>
-          <strong>0—100</strong>
-          <span>Чем полнее карточка, тем выше позиция в каталоге</span>
-        </div>
+        <div class="hero-score"><p>Готовность задачи</p><strong>0—100</strong><span>Прозрачный рейтинг помогает командам понять объём и цель</span></div>
       </section>
 
       <section id="builder" class="section">
-        <div class="section-heading"><p class="eyebrow">01 / Конструктор</p><h2>Опишите задачу</h2><p>Начните с черновика — AI-помощник не добавит фактов, а только спросит, чего не хватает.</p></div>
-        <div class="builder-grid">
-          <article class="panel draft-panel">
-            <label for="draftText">Черновик бизнес-задачи</label>
-            <textarea id="draftText" placeholder="Например: Мы хотим сократить время обработки обращений клиентов в интернет-магазине..."></textarea>
-            <div class="two-cols">
-              <label>Тема<select id="draftTopic"><option>Retail</option><option>EdTech</option><option>FinTech</option><option>HealthTech</option><option>GovTech</option></select></label>
-              <label>Компания / проект<input id="company" placeholder="Например, Qadam Store" /></label>
-            </div>
-            <button id="analyzeButton" class="button primary">Начать диалог с AI <span>✦</span></button>
-            <p class="hint">Локальный AI-анализатор: проверяет признаки заполненности и создаёт вопросы по недостающим полям.</p>
-          </article>
-          <article class="panel ai-panel">
-            <div class="panel-title"><span class="spark">✦</span><div><h3>AI-помощник</h3><p>Структурированный анализ без выдуманных фактов</p></div></div>
-            <div id="aiEmpty" class="empty-state">Введите черновик и нажмите «Начать диалог». Чат-бот задаст три уместных вопроса и сохранит ваши ответы в карточку.</div>
-            <div id="questionsBox" class="hidden"><div id="chatMessages" class="chat-messages" aria-live="polite"></div><div class="chat-composer"><input id="chatInput" placeholder="Напишите ответ…" /><button id="sendChatButton" class="button primary">Отправить</button></div><button id="buildCardButton" class="button secondary hidden">Сформировать карточку →</button></div>
-            <details class="ai-contract"><summary>Как работает чат-бот</summary><p>Локальный rule-based анализатор ищет признаки упоминания полей в черновике и задаёт три вопроса по одному. Упоминание ключевого слова не означает, что поле заполнено: ответ даёт только пользователь. Внешний LLM не вызывается.</p><code>Analyze input: {"draft":"..."}<br>Output: {"mode":"local_rules","missing_fields":[],"mentioned_fields":[],"questions":[{"field":"data","text":"..."}]}<br>Answer: {"field":"data","answer":"..."} → card_update</code><p>Если анализатор выдаёт внутреннюю ошибку, включается локальный безопасный шаблон из трёх вопросов. Пустой черновик или ответ показывают ошибку и не меняют карточку. Все поля карточки доступны для ручного редактирования.</p></details>
-          </article>
+        <div class="section-heading"><p class="eyebrow">01 / Конструктор</p><h2>Соберите задачу вместе с помощником</h2><p>Карточка доступна сразу. Факты из диалога и предложения помощника попадут в неё только после вашего подтверждения.</p></div>
+        <div class="workspace-tabs" role="tablist" aria-label="Область конструктора">
+          <button id="conversationTab" class="workspace-tab active" type="button" role="tab" aria-selected="true" aria-controls="conversationPane">Диалог</button>
+          <button id="cardTab" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="cardPane">Карточка <span id="tabScore">0/100</span></button>
         </div>
-      </section>
+        <div class="builder-workspace">
+          <section id="conversationPane" class="workspace-pane conversation-pane" role="tabpanel" aria-labelledby="conversationTab">
+            <article class="panel draft-panel">
+              <label for="draftText">Черновик задачи</label>
+              <textarea id="draftText" rows="3" maxlength="5000" placeholder="Например: хотим сократить время обработки обращений клиентов в интернет-магазине…"></textarea>
+              <div class="two-cols">
+                <label for="draftTopic">Тема<select id="draftTopic"><option>Retail</option><option>EdTech</option><option>FinTech</option><option>HealthTech</option><option>GovTech</option></select></label>
+                <label for="company">Компания / проект<input id="company" placeholder="Например, Qadam Store" /></label>
+              </div>
+              <button id="analyzeButton" class="button primary" type="button">Начать диалог <span>✦</span></button>
+              <p class="hint">Режим помощника будет показан явно. Изменения карточки всегда нужно подтвердить.</p>
+            </article>
+            <article class="panel ai-panel">
+              <div class="panel-title"><span class="spark" aria-hidden="true">✦</span><div><h3>Диалог с помощником</h3><p id="aiModeDescription">Помощник готов к диалогу</p></div><span id="aiModeBadge" class="mode-badge">Ожидание</span></div>
+              <div id="aiEmpty" class="empty-state">Опишите задачу и начните разговор. Помощник учитывает текущую карточку и последние сообщения.</div>
+              <div id="chatMessages" class="chat-messages" aria-live="polite" aria-relevant="additions text"></div>
+              <div id="chatError" class="chat-error hidden" role="alert"><span id="chatErrorText"></span><button id="retryChatButton" class="small-btn" type="button">Повторить запрос</button></div>
+              <div class="chat-composer"><textarea id="chatInput" rows="2" maxlength="4000" placeholder="Напишите сообщение… Enter — отправить, Shift+Enter — новая строка" aria-label="Сообщение помощнику"></textarea><button id="sendChatButton" class="button primary" type="button">Отправить</button></div>
+              <p id="chatLoading" class="loading-note hidden" role="status"><span class="spinner" aria-hidden="true"></span> Помощник формирует ответ…</p>
+              <section class="ai-changes" aria-labelledby="changesTitle"><div class="changes-heading"><h4 id="changesTitle">Изменения на подтверждение</h4><span id="changesCount" class="change-count">0</span></div><p id="changesEmpty" class="hint">Пока нет предложений. Они не изменяют карточку без вашего действия.</p><div id="aiUpdates" class="change-list"></div><div id="aiSuggestions" class="change-list"></div></section>
+              <button id="undoApplyButton" class="button ghost hidden" type="button">Отменить последнее применение</button>
+              <details class="ai-contract"><summary>О режиме помощника и изменениях</summary><p>В демо используются фиксированные тестовые ответы. При подключённом API отображается режим, сообщённый сервером. Факты и предложения принимаются отдельно и только по нажатию кнопки.</p></details>
+            </article>
+          </section>
 
-      <section id="cardSection" class="section hidden">
-        <div class="section-heading"><p class="eyebrow">02 / Карточка и рейтинг</p><h2>Подтвердите детали</h2><p>Баллы начисляются только за заполненные поля. Рейтинг пересчитывается сразу.</p></div>
-        <div class="card-layout">
-          <article class="panel task-card-editor">
-            <div class="panel-title"><div><h3>Редактируемая карточка</h3><p>Проверьте информацию перед публикацией</p></div><div class="card-status"><span id="compactScore">0/100</span><span id="draftBadge" class="badge draft">Черновик</span></div></div>
-            <div class="form-grid">
-              <label>Название задачи<input id="title" placeholder="Короткое название" /></label>
-              <label>Пользователи<input id="users" placeholder="Кто получит пользу" /></label>
-              <label class="wide">Контекст и потребность<textarea id="context" placeholder="Что происходит сейчас и что нужно изменить"></textarea></label>
-              <label>Данные и материалы<textarea id="data" placeholder="Данные, примеры или источники"></textarea></label>
-              <label>Ожидаемый результат<textarea id="result" placeholder="Что должна сделать команда"></textarea></label>
-              <label>Критерии успеха<textarea id="success" placeholder="Измеримые признаки успеха"></textarea></label>
-              <label>Ограничения<textarea id="constraints" placeholder="Сроки, технологии, доступы"></textarea></label>
-              <label>Контакт<textarea id="contact" placeholder="К кому обратиться"></textarea></label>
-              <label>Формат взаимодействия<textarea id="format" placeholder="Консультации, частота обратной связи"></textarea></label>
-            </div>
-            <button id="publishButton" class="button primary">Подтвердить и опубликовать <span>→</span></button>
-          </article>
-          <aside class="rating-card">
-            <p class="eyebrow">Рейтинг готовности</p><div class="score-line"><strong id="score">0</strong><span>/100</span></div><div class="progress"><span id="progressBar"></span></div><div id="readiness" class="readiness">Черновик</div>
-            <h3>Расшифровка баллов</h3><div id="scoreBreakdown" class="breakdown"></div>
-            <div class="improve"><strong>Как повысить рейтинг</strong><ul id="missingList"></ul></div>
-          </aside>
+          <section id="cardPane" class="workspace-pane card-pane" role="tabpanel" aria-labelledby="cardTab">
+            <article class="panel task-card-editor">
+              <div class="panel-title"><div><h3>Карточка задачи</h3><p>Можно редактировать в любой момент</p></div><div class="card-status"><span id="compactScore">0/100</span><span id="draftBadge" class="badge draft">Черновик</span></div></div>
+              <div class="live-score-line"><strong id="score">0</strong><span>/100 · <b id="readiness">Черновик</b></span><span id="missingCount" class="missing-count">7 критериев незаполнено</span></div>
+              <div id="progress" class="progress" role="progressbar" aria-label="Рейтинг готовности" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progressBar"></span></div>
+              <div class="form-grid">
+                <label for="title">Название задачи<input id="title" placeholder="Короткое название" /></label>
+                <label for="users">Пользователи<textarea id="users" rows="2" placeholder="Кто получит пользу"></textarea></label>
+                <label class="wide" for="context">Контекст и потребность<textarea id="context" rows="3" placeholder="Что происходит сейчас и что нужно изменить"></textarea></label>
+                <label for="data">Данные и материалы<textarea id="data" rows="2" placeholder="Данные, примеры или источники"></textarea></label>
+                <label for="result">Ожидаемый результат<textarea id="result" rows="2" placeholder="Что должна сделать команда"></textarea></label>
+                <label for="success">Критерии успеха<textarea id="success" rows="2" placeholder="Измеримые признаки успеха"></textarea></label>
+                <label for="constraints">Ограничения<textarea id="constraints" rows="2" placeholder="Сроки, технологии, доступы"></textarea></label>
+                <label for="contact">Контакт<input id="contact" placeholder="К кому обратиться" /></label>
+                <label for="format">Формат взаимодействия<textarea id="format" rows="2" placeholder="Консультации, частота обратной связи"></textarea></label>
+              </div>
+              <div class="card-actions"><button id="publishButton" class="button primary" type="button">Опубликовать задачу <span>→</span></button></div>
+              <div class="card-score-details"><h4>Расшифровка рейтинга</h4><div id="scoreBreakdown" class="breakdown"></div><div class="improve"><strong>Что ещё заполнить</strong><ul id="missingList"></ul></div></div>
+            </article>
+          </section>
         </div>
       </section>
 
       <section id="catalog" class="section catalog-section">
-        <div class="section-heading row"><div><p class="eyebrow">03 / Открытый каталог</p><h2>Задачи для студенческих команд</h2><p>Все задачи доступны. Готовые и приоритетные поднимаются выше.</p></div><div class="filters"><select id="topicFilter"><option value="all">Все темы</option><option>Retail</option><option>EdTech</option><option>FinTech</option><option>HealthTech</option><option>GovTech</option></select><select id="readinessFilter"><option value="all">Все уровни</option><option value="working">Рабочая+</option><option value="ready">Готовая+</option></select></div></div>
-        <div id="catalogGrid" class="catalog-grid"></div>
+        <div class="section-heading row"><div><p class="eyebrow">02 / Каталог</p><h2>Задачи для студенческих команд</h2><p>Низкий рейтинг не скрывает задачу. Готовые карточки просто отображают больше контекста.</p></div><div class="filters"><label for="topicFilter">Тема<select id="topicFilter"><option value="all">Все темы</option><option>Retail</option><option>EdTech</option><option>FinTech</option><option>HealthTech</option><option>GovTech</option></select></label><label for="readinessFilter">Готовность<select id="readinessFilter"><option value="all">Все уровни</option><option value="working">Рабочая+</option><option value="ready">Готовая+</option></select></label></div></div>
+        <div id="catalogGrid" class="catalog-grid" aria-live="polite"></div>
       </section>
 
       <section id="proposalSection" class="section hidden">
-        <div class="section-heading"><p class="eyebrow">04 / Отклик команды</p><h2>Предложите решение</h2><p id="proposalFor"></p></div>
+        <div class="section-heading"><p class="eyebrow">03 / Отклик команды</p><h2>Предложите решение</h2><p id="proposalFor"></p></div>
         <article class="panel proposal-form">
-          <div class="two-cols"><label>Команда<select id="teamSelect"></select></label><label>Ссылка на прототип<input id="prototypeLink" value="https://github.com/team/solution" /></label></div>
-          <label>Идея решения<textarea id="proposalIdea" placeholder="Как именно команда решит задачу"></textarea></label>
-          <label>План и срок<textarea id="proposalPlan" placeholder="Основные этапы и срок"></textarea></label>
-          <button id="sendProposal" class="button primary">Отправить предложение →</button>
+          <div class="two-cols"><label for="teamSelect">Команда<select id="teamSelect"></select></label><label for="prototypeLink">Ссылка на прототип<input id="prototypeLink" placeholder="https://…" /></label></div>
+          <label for="proposalIdea">Идея решения<textarea id="proposalIdea" rows="3" placeholder="Как именно команда решит задачу"></textarea></label>
+          <label for="proposalPlan">План и срок<textarea id="proposalPlan" rows="3" placeholder="Основные этапы и срок"></textarea></label>
+          <button id="sendProposal" class="button primary" type="button">Отправить предложение →</button>
         </article>
       </section>
 
       <section id="responses" class="section">
-        <div class="section-heading"><p class="eyebrow">05 / Решение бизнеса</p><h2>Сравните предложения вручную</h2><p>AI не назначает исполнителя — бизнес сам выбирает, отклоняет или оставляет отклик в ожидании.</p></div>
+        <div class="section-heading"><p class="eyebrow">04 / Решение бизнеса</p><h2>Решите вручную</h2><p>Бизнес сам выбирает команду или отклоняет отклик. Помощник не назначает исполнителя.</p></div>
         <div id="responsesList" class="responses-list"></div>
-        <aside class="leaderboard"><div><p class="eyebrow">Геймификация команд</p><h3>Progress points</h3><p>Команда получает 100 баллов только после ручного выбора бизнесом.</p></div><div id="leaderboardList" class="leaderboard-list"></div></aside>
+        <aside class="leaderboard"><div><p class="eyebrow">Геймификация команд</p><h3>Progress points</h3><p>Команда получает 100 баллов после ручного выбора бизнесом.</p></div><div id="leaderboardList" class="leaderboard-list"></div></aside>
       </section>
     </main>
     <nav class="mobile-nav" aria-label="Мобильная навигация"><a href="#builder">Создать</a><a href="#catalog">Каталог</a><a href="#responses">Отклики</a></nav>
-    <div id="toast" class="toast hidden"></div>
-    <footer>SanaMatch · MVP для AI Sana Challenge Hub · Все данные демонстрационные · <button id="resetDemoButton" class="text-button">Сбросить демо-данные</button></footer>
+    <dialog id="publishConfirmDialog" class="publish-dialog" aria-labelledby="publishConfirmTitle"><div class="dialog-header"><div><p class="eyebrow">Публикация</p><h2 id="publishConfirmTitle">Опубликовать задачу?</h2></div><button id="cancelPublishIcon" class="icon-button" type="button" aria-label="Закрыть подтверждение">×</button></div><p id="publishConfirmText" class="publish-confirm-copy"></p><div class="dialog-actions"><button id="cancelPublishButton" class="button ghost" type="button">Вернуться к карточке</button><button id="confirmPublishButton" class="button primary" type="button">Опубликовать</button></div></dialog>
+    <dialog id="taskDetailsDialog" class="task-dialog" aria-labelledby="detailTitle"><div class="dialog-header"><div><p id="detailTopic" class="eyebrow"></p><h2 id="detailTitle"></h2></div><button id="closeDetailsButton" class="icon-button" type="button" aria-label="Закрыть подробности">×</button></div><p id="detailScore" class="detail-score"></p><div id="detailFields" class="detail-fields"></div><div class="dialog-actions"><button id="detailRespondButton" class="button primary" type="button">Откликнуться →</button></div></dialog>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <footer>SanaMatch · HackAlem · Все демонстрационные данные помечены · <button id="resetDemoButton" class="text-button" type="button">Сбросить демо-данные</button></footer>
+    <script src="ui/api-client.js"></script>
+    <script src="ui/demo-adapter.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

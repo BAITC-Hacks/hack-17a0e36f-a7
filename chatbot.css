@@ -5,3 +5,6 @@
 .chat-composer{display:grid;grid-template-columns:1fr auto;gap:8px;border-top:1px solid #dce7de;padding-top:13px}
 .chat-composer input{min-width:0}.chat-composer .button{padding:10px 13px}.chat-composer .button:disabled{cursor:not-allowed;opacity:.55}
 @media(max-width:540px){.chat-composer{grid-template-columns:1fr}.chat-composer .button{width:100%}}
+.chat-composer textarea{width:100%;padding:12px 13px;border:1px solid #d6e2d8;border-radius:10px;background:#fbfdfb;color:#182b20;font:inherit;font-size:14px;line-height:1.5;outline:none}
+.chat-composer textarea:focus{border-color:#087a43;box-shadow:0 0 0 3px #087a431a}
+.chat-composer textarea::placeholder{color:#748178}
